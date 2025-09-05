@@ -8,11 +8,11 @@ class ChaveSTM32 : public IChave
 {
 private:
     uint8_t _pino;
-    bool _ativoAlto;        // define se a chave é ativa em HIGH ou LOW
-    bool _estado;           // estado lógico atual (true = ativa)
-    bool _ultimoLeitura;    // última leitura válida
-    unsigned long _inicioAtivo;   // quando começou a ficar ativa
-    unsigned long _tempoAtivo;    // tempo acumulado em ms
+    bool _estadoAtivo;        // define se a chave é ativa em HIGH ou LOW
+    bool _estadoLogado;       // estado lógico atual 
+    bool _ultimoLeitura;      // última leitura válida
+    unsigned long _inicioAtivo; // quando começou a ficar ativa
+    unsigned long _tempoAtivo;  // tempo acumulado em ms
 
     // Controle de debounce
     static const unsigned long DEBOUNCE_DELAY = 50; // 50 ms
@@ -20,52 +20,61 @@ private:
 
 public:
     /// Construtor
-    /// @param pino -> número do pino no STM32
-    /// @param ativoAlto -> true se a chave é ativa em HIGH, false se ativa em LOW
-    ChaveSTM32(uint8_t pino, bool ativoAlto = true) 
-        : _pino(pino), _ativoAlto(ativoAlto), _estado(false),
+    ChaveSTM32(uint8_t pino, bool estadoAtivo = LOW) 
+        : _pino(pino), _estadoAtivo(estadoAtivo), _estadoLogado(false),
           _ultimoLeitura(false), _inicioAtivo(0), _tempoAtivo(0),
           _ultimoDebounce(0)
     {
-        pinMode(_pino, INPUT); // pode trocar para INPUT_PULLUP se necessário
+        pinMode(_pino, INPUT_PULLUP);
     }
 
     /// Atualiza o estado da chave (chamar no loop)
     void atualizar() override 
     {
-        bool leituraBruta = digitalRead(_pino);
-        bool leituraNormalizada = _ativoAlto ? leituraBruta : !leituraBruta;
+        bool leitura = digitalRead(_pino);
 
-        if (leituraNormalizada != _ultimoLeitura) {
-            _ultimoDebounce = millis(); // reinicia contador de debounce
+        // Debounce: só atualiza se estiver estável por DEBOUNCE_DELAY
+        if (leitura != _ultimoLeitura) 
+        {
+            _ultimoDebounce = millis();
+            _ultimoLeitura = leitura;
+            return;
         }
 
-        if ((millis() - _ultimoDebounce) > DEBOUNCE_DELAY) 
+        if ((millis() - _ultimoDebounce) < DEBOUNCE_DELAY)
+            return;
+
+        // Atualiza estado lógico e tempo ativo
+        if (_estadoLogado != leitura) 
         {
-            if (leituraNormalizada != _estado) 
+            _estadoLogado = leitura;
+
+            if (_estadoLogado == _estadoAtivo) 
             {
-                _estado = leituraNormalizada;
-                if (_estado) // chave acabou de ser ativada       
-                    _inicioAtivo = millis();
-                else // chave acabou de ser desativada → acumula tempo  
-                    _tempoAtivo += millis() - _inicioAtivo;
+                _inicioAtivo = millis(); // começou a ficar ativo
+            }
+            else if (_inicioAtivo != 0) 
+            {
+                _tempoAtivo += millis() - _inicioAtivo; // acumula tempo
+                _inicioAtivo = 0;
             }
         }
-        _ultimoLeitura = leituraNormalizada;
     }
 
     /// Retorna se a chave está ativa
     bool estaAtiva() override 
     {
-        return _estado;
+        return _estadoLogado == _estadoAtivo;
     }
 
     /// Retorna o tempo acumulado em que a chave esteve ativa
     unsigned long tempoAtiva() override 
     {
         unsigned long total = _tempoAtivo;
-        if (_estado) 
+        if (_estadoLogado == _estadoAtivo && _inicioAtivo != 0) 
+        {
             total += millis() - _inicioAtivo;
+        }
         return total;
     }
 };
