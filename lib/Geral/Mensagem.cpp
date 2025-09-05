@@ -6,7 +6,6 @@ Mensagem::Mensagem(HardwareSerial &serialHardware, LiquidCrystal_I2C &displayLCD
     serial.begin(115200);
     serial.println("Serial iniciada..");
 
-    Wire.begin();
     lcd.init();
     lcd.backlight();
     lcd.clear();
@@ -23,10 +22,24 @@ void Mensagem::enviarMensagem(String L1, String L2, String L3, String L4)
 
     for (int i = 0; i < linLCD; i++)
     {
-        if (L[i] != "")
+        unsigned int colunas = static_cast<unsigned int>(colLCD);
+        // Linhas vazias signfica que o conteúdo anterior não deve ser alterado
+        if (L[i] == "")
+            continue;
+        // Linha = " " signfica que a linha deve ser apagada
+        if (L[i] == " ")
+            while (L[i].length() < colunas) 
+                L[i] += " ";      
+        if (L[i] != linhasOld[i])
         {
+            // Primeiro: cortar se for maior que o LCD
+            if (L[i].length() > colunas)
+                L[i] = L[i].substring(0, colLCD);
+            // Depois: sempre completar com espaços até atingir colLCD
+            while (L[i].length() < colunas) 
+                L[i] += " ";
             lcd.setCursor(0, i);
-            lcd.print(L[i].substring(0, colLCD));
+            lcd.print(L[i]);
             linhasOld[i] = L[i];
             flagMudanca = true;
         }
@@ -36,7 +49,9 @@ void Mensagem::enviarMensagem(String L1, String L2, String L3, String L4)
     {
         serial.println("----- Mensagem -----");
         for (int i = 0; i < linLCD; i++)
-            serial.println(L[i]);
+        {
+            serial.println("|" + L[i] + "|");
+        }
         serial.println("----- " + String(millis()) + " -----");
     }
 }
