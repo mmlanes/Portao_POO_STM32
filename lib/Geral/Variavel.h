@@ -36,20 +36,22 @@ public:
     }
 
     // Métodos de manipulação
-    void incrementar() 
+    void incrementar(uint8_t acelerador = 1) 
     {
         if constexpr (std::is_same<T, bool>::value) 
-        {
             _valor = true;
-        } 
         else 
         {
-            if (_valor + _passo <= _max)
+            uint8_t incremento = acelerador * _passo;
+            if (_valor + incremento <= _max)
+                _valor += incremento;
+            else if (_valor + _passo <= _max)
                 _valor += _passo;
         }
     }
 
-    void decrementar() 
+
+    void decrementar(uint8_t acelerador = 1) 
     {
         if constexpr (std::is_same<T, bool>::value) 
         {
@@ -57,7 +59,10 @@ public:
         } 
         else 
         {
-            if (_valor - _passo >= _min)
+            uint8_t incremento = acelerador * _passo;
+            if (_valor - incremento <= _max)
+                _valor -= incremento;
+            else if (_valor - _passo <= _max)
                 _valor -= _passo;
         }
     }
@@ -108,7 +113,7 @@ public:
             if (v->ehPersistente()) 
             {
                 if (resultado.length() > 0) resultado += ";";
-                resultado += v->obterNome() + "=" + v->paraString();
+                    resultado += v->obterNome() + "=" + v->paraString();
             }
         }
         return resultado;
