@@ -46,25 +46,26 @@ public:
     }
 
     // 🔹 Novo método: substitui $nome$ por valor
-static String substituirVariaveis(const String& texto) 
-{
-    String resultado = texto;
-    for (auto v : _todas) 
+    static String substituirVariaveis(const String& texto) 
     {
-        String padrao = "$" + v->obterNome() + "$";
-        int pos = resultado.indexOf(padrao);
-        while (pos != -1) 
+        if (texto.length() == 0) return texto;  // nada a substituir
+        String resultado = texto;
+        for (auto v : _todas) 
         {
-            // Divide a string em antes + substituição + depois
-            resultado = resultado.substring(0, pos) 
-                        + v->paraString() 
-                        + resultado.substring(pos + padrao.length());
-            // Procura novamente a partir do final da substituição
-            pos = resultado.indexOf(padrao, pos + v->paraString().length());
+            String padrao = "$" + v->obterNome() + "$";
+            int pos = resultado.indexOf(padrao);
+            while (pos >= 0) 
+            {
+                // Salva o valor da variável para evitar chamar toString() duas vezes
+                String valor = v->paraString();
+                // Substitui o padrão pela string da variável
+                resultado = resultado.substring(0, pos) + valor + resultado.substring(pos + padrao.length());
+                // Continua procurando a partir do fim da substituição
+                pos = resultado.indexOf(padrao, pos + valor.length());
+            }
         }
+        return resultado;
     }
-    return resultado;
-}
 
 };
 

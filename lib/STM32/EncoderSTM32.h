@@ -1,6 +1,7 @@
 #pragma once
 
 #include <Arduino.h>
+#include "Variavel.h"
 
 class EncoderSTM32 
 {
@@ -9,32 +10,32 @@ class EncoderSTM32
     uint8_t pinB_;
     bool pinA_is_Isr_;
     bool pinB_is_Isr_;
-    bool reverso_;
-    int32_t posicao_;
-    uint32_t posicaoMaxima_;
+    Variavel<bool>& reverso_;
+    Variavel<int32_t>& posicao_;
+    Variavel<uint32_t>& posicaoMaxima_;
     void atualizarPosicaoIsr(void)
     {
         bool a = digitalRead(pinA_);
         bool b = digitalRead(pinB_);
         if (a == b)
         {
-            if (reverso_)
-                posicao_--;
+            if (reverso_.obterValor())
+                posicao_.decrementar();
             else
-                posicao_++;
+                posicao_.incrementar();
         }
         else
         {
-            if (reverso_)
-                posicao_++;
+            if (reverso_.obterValor())
+                posicao_.incrementar();
             else
-                posicao_--;
+                posicao_.decrementar();
         }
     }
 
 public:
-    EncoderSTM32(uint8_t pinA, uint8_t pinB, bool pinA_is_Isr = true, bool pinB_is_Isr = false, bool contagemReversa = false)
-    : pinA_(pinA), pinB_(pinB), pinA_is_Isr_(pinA_is_Isr), pinB_is_Isr_(pinB_is_Isr), reverso_(contagemReversa), posicao_(0), posicaoMaxima_(1)
+    EncoderSTM32(Variavel<int32_t>& pos, Variavel<uint32_t>& max, Variavel<bool>& rev, uint8_t pinA, uint8_t pinB, bool pinA_is_Isr = true, bool pinB_is_Isr = false, bool contagemReversa = false)
+    : posicao_(pos), posicaoMaxima_(max), reverso_(rev), pinA_(pinA), pinB_(pinB), pinA_is_Isr_(pinA_is_Isr), pinB_is_Isr_(pinB_is_Isr)
     {
         pinMode(pinA_, INPUT_PULLUP);
         pinMode(pinB_, INPUT_PULLUP);
@@ -45,23 +46,20 @@ public:
     }
     void zerarPosicao(void)
     {
-        posicao_ = 0;
+        posicao_.definirValor(0);
     }
     int32_t obterPosicao(void) const
     {
-        return posicao_;
+        return posicao_.obterValor();
     }
     void definirPosicao(int32_t p)
     {
-        posicao_ = p;
+        posicao_.definirValor(p);
     }
     int8_t obterPosicao_N100aP100(void) const
     {
-        int32_t p = (posicao_ * 100) / (int32_t)posicaoMaxima_;
-        // if (p < -100)
-        //     p = -100;
-        // else if (p > 100)
-        //     p = 100;
+        int32_t p = (posicao_.obterValor() * 100) / (int32_t)posicaoMaxima_.obterValor();
+
         return static_cast<int8_t>(p);
     }
     void definirPosicao_N100aP100(int8_t p)
@@ -70,29 +68,30 @@ public:
             p = -100;
         else if (p > 100)
             p = 100;
-        posicao_ = (p * posicaoMaxima_) / 100;
+        int32_t pos = (p * posicaoMaxima_.obterValor()) / 100;
+        posicao_.definirValor(pos);
     }
     uint32_t obterPosicaoMaximaAbs(void)
     {
-        return posicaoMaxima_;
+        return posicaoMaxima_.obterValor();
     }
     void definirPosicaoMaximaAbs(int32_t pMaxAbs)
     {
         if (pMaxAbs < 1)
             pMaxAbs = 1;
-        posicaoMaxima_ = pMaxAbs;
+        posicaoMaxima_.definirValor(pMaxAbs);
     }
     int8_t obterPosicaoMaxima_0a100(void)
     {
-        return 100 * (float)posicao_ / posicaoMaxima_;
+        return 100 * (float)posicao_.obterValor() / posicaoMaxima_.obterValor();
     }
     void definirSentidoEncoder(bool reverso = false)
     {
-        reverso_ = reverso;
+        reverso_.definirValor(reverso);
     }
     bool obterSentidoEncoder(void)
     {
-        return reverso_;
+        return reverso_.obterValor();
     }
 };
 

@@ -11,6 +11,7 @@
 #include "ModosOperacao.h"
 #include "AcoesChaves.h"
 #include "MensagemLCD.h"
+#include "ConfigFlash.h"
 
 // Configuração do hardware
 HardwareSerial Serial2(PA3, PA2); // RX, TX
@@ -24,9 +25,7 @@ ChaveSTM32 btnA(PB5, LOW);
 ChaveSTM32 btnF(PB3, LOW);
 ChaveSTM32 btnP(PB4, LOW);
 
-EncoderSTM32 encAB(PA12, PA15, true, false, false);
-
-Variavel<int32_t> encPos("encPos", 0, -100e3, 100e3, 0, false);
+Variavel<int32_t> encPos("encPos", 0, -100e3, 100e3, 1, false);
 Variavel<bool> encAtivo("encAtivo", true, false, true, true, true);
 Variavel<uint32_t> encMax("encMax", 2750, 100, 10e3, 1, true);
 Variavel<bool> encRev("encRev", false, false, true, true, true);
@@ -34,7 +33,12 @@ Variavel<uint16_t> freqPWM("freqPWM", 500, 100, 10e3, 10, true);
 Variavel<uint16_t> dPWMMax("dPWMMax", 60, 10, 100, 1, true);
 Variavel<float> acelPWM("acelPWM", 0.1f, 10.0f, 0.1, 0.1f, true);
 Variavel<float> adjADC("adjADC", 1.7e-3f, 0.1e-3f, 10.0e-3f, 0.1e-3f, true);
+Variavel<float> iMedio("iMedio", 0.0f, 0.0f, 20.0f, 0.0f, false);
+Variavel<float> iProt("iProt", 5.0f, 1.0f, 20.0f, 0.1f, true);
 Variavel<bool> salvarConfigFlash("salvarConfigFlash", false, false, true, true, false);
+Variavel<bool> carregarConfigFlash("carregarConfigFlash", false, false, true, true, false);
+
+EncoderSTM32 encAB(encPos, encMax, encRev, PA12, PA15, true, false, false);
 
 ModosOperacao modoNormal("Normal");
 ModosOperacao modoMonitorGeral("Monitor geral");
@@ -45,9 +49,12 @@ ModosOperacao modoFreqPWM("Frequencia PWM");
 ModosOperacao modoDPWM("D PWM");
 ModosOperacao modoAcelPWM("Aceleracao PWM");
 ModosOperacao modoConstanteADC("Constante ADC");
+ModosOperacao modoCorrenteProtecao("Corrente protecao");
 ModosOperacao modoSalvarConfigFlash("Salvar config Flash");
+ModosOperacao modoCarregarConfigFlash("Carrega config Flash");
 
-AcoesChaves trocarModo(btnP, btnA, btnF, false, false, nullptr, [](uint8_t){ ModosOperacao::modoSeguinte(); }, 2000, true, 50000, 1, 60000, 1); 
+AcoesChaves avancarModo(btnP, btnA, btnF, true, false, nullptr, [](uint8_t){ ModosOperacao::modoSeguinte(); }, 2000, true, 50000, 1, 60000, 1); 
+AcoesChaves voltarModo(btnP, btnA, btnF, false, true, nullptr, [](uint8_t){ ModosOperacao::modoAnterior(); }, 2000, true, 50000, 1, 60000, 1); 
 AcoesChaves ativarEnc(btnA, btnP, btnF, false, false, &modoEncAtivo, [](uint8_t v){ encAtivo.incrementar(v); }, 500, false);
 AcoesChaves desativarEnc(btnF, btnP, btnA, false, false, &modoEncAtivo, [](uint8_t v){ encAtivo.decrementar(v); }, 500, false);
 AcoesChaves incEncMax(btnA, btnP, btnF, false, false, &modoEncMaximo, [](uint8_t v){ encMax.incrementar(v); }, 500, true, 5000, 10, 10000, 100);
@@ -60,26 +67,39 @@ AcoesChaves incDPWM(btnA, btnP, btnF, false, false, &modoDPWM, [](uint8_t v){ dP
 AcoesChaves decDPWM(btnF, btnP, btnA, false, false, &modoDPWM, [](uint8_t v){ dPWMMax.decrementar(v); }, 500, true, 5000, 10, 10000, 100);
 AcoesChaves incAcelPWM(btnA, btnP, btnF, false, false, &modoAcelPWM, [](uint8_t v){ acelPWM.incrementar(v); }, 500, true, 5000, 10, 10000, 100);
 AcoesChaves decAcelPWM(btnF, btnP, btnA, false, false, &modoAcelPWM, [](uint8_t v){ acelPWM.decrementar(v); }, 500, true, 5000, 10, 10000, 100);
-AcoesChaves inAdjADC(btnA, btnP, btnF, false, false, &modoConstanteADC, [](uint8_t v){ adjADC.incrementar(v); }, 500, true, 5000, 10, 10000, 100);
+AcoesChaves incAdjADC(btnA, btnP, btnF, false, false, &modoConstanteADC, [](uint8_t v){ adjADC.incrementar(v); }, 500, true, 5000, 10, 10000, 100);
 AcoesChaves decAdjADC(btnF, btnP, btnA, false, false, &modoConstanteADC, [](uint8_t v){ adjADC.decrementar(v); }, 500, true, 5000, 10, 10000, 100);
+AcoesChaves incCorrenteProtecao(btnA, btnP, btnF, false, false, &modoCorrenteProtecao, [](uint8_t v){ iProt.incrementar(v); }, 500, true, 5000, 10, 10000, 100);
+AcoesChaves decCorrenteProtecao(btnF, btnP, btnA, false, false, &modoCorrenteProtecao, [](uint8_t v){ iProt.decrementar(v); }, 500, true, 5000, 10, 10000, 100);
 AcoesChaves acSalvarConfigFlash(btnF, btnP, btnA, true, true, &modoSalvarConfigFlash, [](uint8_t v){ salvarConfigFlash.incrementar(v); }, 5000, false);
+AcoesChaves acCarregarConfigFlash(btnF, btnP, btnA, true, true, &modoCarregarConfigFlash, [](uint8_t v){ carregarConfigFlash.incrementar(v); }, 5000, false);
 
-MensagemLCD mMonitorGeral(&modoMonitorGeral, "$modo$", "EncAB = $encPos$", " ", " ");
-MensagemLCD mAtivarEnc(&modoEncAtivo, "$modo$", "$encAtivo$", " ", "BtnA: 1, BtnF: 0");
-MensagemLCD mEncMaximo(&modoEncMaximo, "$modo$", "$encMax$", " ", "BtnA: inc, BtnF: dec");
-MensagemLCD mEncReverso(&modoEncReverso, "$modo$", "$encRev$", " ", "BtnA: 1, BtnF: 0");
-MensagemLCD mFreqPWM(&modoFreqPWM, "$modo$", "$freqPWM$ Hz", " ", "BtnA: inc, BtnF: dec");
-MensagemLCD mDPWM(&modoDPWM, "$modo$", "$dPWMMax$ %", " ", "BtnA: inc, BtnF: dec");
-MensagemLCD mAcelPWM(&modoAcelPWM, "$modo$", "$acelPWM$ dPwm/s", " ", "BtnA: inc, BtnF: dec");
-MensagemLCD mConstADC(&modoConstanteADC, "$modo$", "$adjADC$", " ", "BtnA: inc, BtnF: dec");
-MensagemLCD mSalvarFlash(&modoSalvarConfigFlash, "$modo$", "$salvarConfigFlash$", " ", "BtnA: 1, BtnF: 0");
+String trocarTela = "Tela P+A >> e P+F <<";
+String incDecBool = "Valor: BtA=1 e BtF=0";
+String incDecNum = "Valor: BtA=+ e BtF=-";
+MensagemLCD mMonitorGeral(&modoMonitorGeral, "$modo$", "Pos=$encPos$/$encMax$ Rev=$encRev$", " ", trocarTela);
+MensagemLCD mAtivarEnc(&modoEncAtivo, "$modo$", "$encAtivo$", incDecBool, trocarTela);
+MensagemLCD mEncMaximo(&modoEncMaximo, "$modo$", "$encMax$", incDecNum, trocarTela);
+MensagemLCD mEncReverso(&modoEncReverso, "$modo$", "$encRev$", incDecBool, trocarTela);
+MensagemLCD mFreqPWM(&modoFreqPWM, "$modo$", "$freqPWM$ Hz", incDecNum, trocarTela);
+MensagemLCD mDPWM(&modoDPWM, "$modo$", "$dPWMMax$ %", incDecNum, trocarTela);
+MensagemLCD mAcelPWM(&modoAcelPWM, "$modo$", "$acelPWM$ dPwm/s", incDecNum, trocarTela);
+MensagemLCD mConstADC(&modoConstanteADC, "$modo$", "$adjADC$", incDecNum, trocarTela);
+MensagemLCD mCorrenteProtecao(&modoCorrenteProtecao, "$modo$", "$iProt$ A", incDecNum, trocarTela);
+MensagemLCD mSalvarFlash(&modoSalvarConfigFlash, "$modo$", "$salvarConfigFlash$", "Bts(A+F+P) 5s salvar", trocarTela);
+MensagemLCD mCarregarFlash(&modoCarregarConfigFlash, "$modo$", "$carregarConfigFlash$", "Bts(A+F+P) 5s carreg", trocarTela);
 
 
 //void Testar_Chaves(void);
+void CarregarVariaveisFlash(void);
 
 void setup()
 {
-    ModosOperacao::modoSeguinte(); // Inicia no primeiro modo
+    CarregarVariaveisFlash();
+    //ModosOperacao::modoSeguinte(); // Inicia no primeiro modo
+    // for (int s=0; s<1003; s++)
+    //     encPos.incrementar();
+    
     encMax.incrementar();
     Serial2.println("..");
     delay(100);
@@ -104,8 +124,56 @@ void loop()
         m.enviarMensagem(msg); 
 
     AcoesChaves::atuarTodas(ModosOperacao::modoAtual());
-    //Serial2.println(VariavelBase::todasPersistentesParaString());
 
+    if (carregarConfigFlash.obterValor())
+    {
+        carregarConfigFlash.definirValor(false);
+        CarregarVariaveisFlash();
+        m.enviarMensagem("Config Flash", "Carregada", " ", "aguarde 3s");
+        delay(3000);
+    }
+
+    if (salvarConfigFlash.obterValor())
+    {
+        salvarConfigFlash.definirValor(false);
+        ConfigFlash cfg;
+        cfg.SalvarStringConfig(VariavelBase::todasPersistentesParaString());
+        m.enviarMensagem("Config Flash", "Salva", " ", "aguarde 3s");
+        delay(3000);
+    }
+    //Serial2.println(VariavelBase::todasPersistentesParaString());
+    //delay(1000);
+
+}
+
+void CarregarVariaveisFlash(void)
+{
+    ConfigFlash cfg;
+    // Percorre todas as variáveis registradas
+    for (auto v : VariavelBase::_todas) 
+    {
+        if (!v->ehPersistente()) 
+            continue; // só persistentes
+
+        String nome = v->obterNome();
+        String valorStr = cfg.obterValor(nome);
+        if (valorStr.length() == 0) 
+            continue; // valor não encontrado
+
+        // Atualiza a variável de acordo com o tipo
+        if (auto vi = dynamic_cast<Variavel<int>*>(v))
+            vi->definirValor(valorStr.toInt());
+        else if (auto vi32 = dynamic_cast<Variavel<int32_t>*>(v))
+            vi32->definirValor(valorStr.toInt());
+        else if (auto vu32 = dynamic_cast<Variavel<uint32_t>*>(v))
+            vu32->definirValor(valorStr.toInt());
+        else if (auto vu16 = dynamic_cast<Variavel<uint16_t>*>(v))
+            vu16->definirValor(valorStr.toInt());
+        else if (auto vf = dynamic_cast<Variavel<float>*>(v))
+            vf->definirValor(valorStr.toFloat());
+        else if (auto vb = dynamic_cast<Variavel<bool>*>(v))
+            vb->definirValor(valorStr == "1" || valorStr.equalsIgnoreCase("true"));
+    }
 }
 
 // void Testar_Chaves(void)
