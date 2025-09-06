@@ -11,7 +11,7 @@ private:
     ChaveSTM32& chave3_;
     bool estadoNecessarioChave2_;
     bool estadoNecessarioChave3_;
-    String modoAtuar_;
+    ModosOperacao* modoAtuar_;
     void (*funcaoAcao_)(uint8_t);
     uint16_t tempoAtivacaoMs_;
     bool acaoRepetir_;
@@ -27,7 +27,7 @@ private:
 public:
 AcoesChaves(
     ChaveSTM32& chave1, ChaveSTM32& chave2, ChaveSTM32& chave3, 
-    bool estadoNecessarioChave2 = false, bool estadoNecessarioChave3 = false, String modoAtuar = "",
+    bool estadoNecessarioChave2 = false, bool estadoNecessarioChave3 = false, ModosOperacao* modoAtuar = nullptr,
     void (*funcaoAcao)(uint8_t) = nullptr, uint16_t tempoAtivacaoMs = 0, bool repetir = false,
     uint16_t tempoAcelerador1Ms = 5000, uint8_t acelerador1 = 10,
     uint16_t tempoAcelerador2Ms = 10000,
@@ -45,9 +45,9 @@ AcoesChaves(
     }
 
 
-    void atuar(String modo = "") 
+    void atuar(ModosOperacao* modo = nullptr) 
     { 
-        if (modoAtuar_ != modo && modo != "")
+        if (modoAtuar_ != modo && modoAtuar_ != nullptr)
             return; // não está no modo correto
 
          // Verifica se a chave1 está ativa e as outras duas estão nos estados necessários
@@ -89,7 +89,7 @@ AcoesChaves(
     }
 
     // 🔹 Método estático: chama atuar() em todas as instâncias registradas
-    static void atuarTodas(String modo = "")
+    static void atuarTodas(ModosOperacao* modo = nullptr)
     {
         for (auto* instancia : instancias_)
             instancia->atuar(modo);

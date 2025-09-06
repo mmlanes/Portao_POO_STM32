@@ -4,6 +4,7 @@
 #include <HardwareSerial.h>
 #include <Wire.h>
 #include <LiquidCrystal_I2C.h>
+#include "Variavel.h"
 
 class Mensagem 
 {
@@ -84,6 +85,8 @@ public:
             if (L[i] == " ")
                 while (L[i].length() < colunas) 
                     L[i] += " ";      
+            // Substitui variáveis por valores
+            L[i] = VariavelBase::substituirVariaveis(L[i]);
             // Primeiro: cortar se for maior que o LCD
             if (L[i].length() > colunas)
                 L[i] = L[i].substring(0, colLCD);

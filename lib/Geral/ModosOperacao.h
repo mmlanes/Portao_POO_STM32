@@ -24,12 +24,12 @@ public:
     {
         return nomeModo;
     }
-    static ModosOperacao modoAtual(void)
+    static ModosOperacao* modoAtual(void)
     {
         auto& lista = obterListaModos();
         if (modoAtual_ < 0 || modoAtual_ >= lista.size())
-            return ModosOperacao("Nenhum");
-        return *lista[modoAtual_];
+            return nullptr;
+        return lista[modoAtual_];
     }
     static void modoSeguinte(void)
     {
