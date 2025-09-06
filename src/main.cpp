@@ -95,30 +95,19 @@ void CarregarVariaveisFlash(void);
 
 void setup()
 {
+    ConfigFlash cfg;
+    cfg.obterStringCompleta();
+    Serial2.println("CFG: " + cfg.obterStringCompleta() + "|");
     CarregarVariaveisFlash();
-    //ModosOperacao::modoSeguinte(); // Inicia no primeiro modo
-    // for (int s=0; s<1003; s++)
-    //     encPos.incrementar();
     
     encMax.incrementar();
     Serial2.println("..");
     delay(100);
-    m.enviarMensagem("Sistema Iniciado");
-    encAB.definirPosicaoMaximaAbs(2750);
-    Serial2.println("...");
-    //PWM_PB1_STM32::setupPwmUpDown(500, FastADC_PA0_STM32::leituraSincronizadaPWM);
-    Serial2.println("....");
 }
 
 void loop()
 {
-    //Serial2.print(".");
-    // Atualizar TODAS as chaves de uma vez
     ChaveSTM32::atualizarTodas();
-    // m.enviarMensagem(ModosOperacao::modoAtual()->obterNome(), 
-    //                  "encAtivo = " + String(encAtivo.obterValor()), 
-    //                  "freqPWM = $freqPWM$", 
-    //                  "adjADC = " + String(adjADC.obterValor(),5));
 
     for (auto* msg : MensagemLCD::todas()) 
         m.enviarMensagem(msg); 
@@ -137,19 +126,18 @@ void loop()
     {
         salvarConfigFlash.definirValor(false);
         ConfigFlash cfg;
-        cfg.SalvarStringConfig(VariavelBase::todasPersistentesParaString());
+        String C = VariavelBase::todasPersistentesParaString();
+        cfg.SalvarStringConfig(C);
         m.enviarMensagem("Config Flash", "Salva", " ", "aguarde 3s");
         delay(3000);
     }
-    //Serial2.println(VariavelBase::todasPersistentesParaString());
-    //delay(1000);
 
 }
 
 void CarregarVariaveisFlash(void)
 {
     ConfigFlash cfg;
-    // Percorre todas as variáveis registradas
+
     for (auto v : VariavelBase::_todas) 
     {
         if (!v->ehPersistente()) 
@@ -159,22 +147,30 @@ void CarregarVariaveisFlash(void)
         String valorStr = cfg.obterValor(nome);
         if (valorStr.length() == 0) 
             continue; // valor não encontrado
-
-        // Atualiza a variável de acordo com o tipo
-        if (auto vi = dynamic_cast<Variavel<int>*>(v))
-            vi->definirValor(valorStr.toInt());
-        else if (auto vi32 = dynamic_cast<Variavel<int32_t>*>(v))
-            vi32->definirValor(valorStr.toInt());
-        else if (auto vu32 = dynamic_cast<Variavel<uint32_t>*>(v))
-            vu32->definirValor(valorStr.toInt());
-        else if (auto vu16 = dynamic_cast<Variavel<uint16_t>*>(v))
-            vu16->definirValor(valorStr.toInt());
-        else if (auto vf = dynamic_cast<Variavel<float>*>(v))
-            vf->definirValor(valorStr.toFloat());
-        else if (auto vb = dynamic_cast<Variavel<bool>*>(v))
-            vb->definirValor(valorStr == "1" || valorStr.equalsIgnoreCase("true"));
+        switch (v->tipo())
+        {
+            case TipoVariavel::INT32:
+                static_cast<Variavel<int32_t>*>(v)->definirValor((int32_t)valorStr.toInt());
+                break;
+            case TipoVariavel::UINT32:
+                static_cast<Variavel<uint32_t>*>(v)->definirValor((uint32_t)valorStr.toInt());
+                break;
+            case TipoVariavel::UINT16:
+                static_cast<Variavel<uint16_t>*>(v)->definirValor((uint16_t)valorStr.toInt());
+                break;
+            case TipoVariavel::FLOAT:
+                static_cast<Variavel<float>*>(v)->definirValor(valorStr.toFloat());
+                break;
+            case TipoVariavel::BOOL:
+                static_cast<Variavel<bool>*>(v)->definirValor(valorStr == "1" || valorStr.equalsIgnoreCase("true"));
+                break;
+            default:
+                // tipo desconhecido, não faz nada
+                break;
+        }
     }
 }
+
 
 // void Testar_Chaves(void)
 // {

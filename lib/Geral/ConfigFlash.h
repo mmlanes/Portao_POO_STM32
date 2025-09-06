@@ -37,6 +37,7 @@ public:
     {
         return SalvarStringConfig(VariavelBase::todasPersistentesParaString());
     }
+
     // 🔹 Salva apenas se for diferente
     bool SalvarStringConfig(const String& s)
     {
@@ -45,32 +46,39 @@ public:
         size_t len = s.length();
         if (len > tamanhoMax) len = tamanhoMax;
 
+        // Escreve a string na EEPROM
         for (size_t i = 0; i < len; i++)
         {
-            EEPROM.write(enderecoInicial + i, s[i]);
+            if (EEPROM.read(enderecoInicial + i) != s[i])
+                EEPROM.write(enderecoInicial + i, s[i]);
         }
+
         // Preenche o restante com zeros
         for (size_t i = len; i < tamanhoMax; i++)
         {
-            EEPROM.write(enderecoInicial + i, 0);
+            if (EEPROM.read(enderecoInicial + i) != 0)
+                EEPROM.write(enderecoInicial + i, 0);
         }
 
         ultimaString_ = s;
         return true;
     }
 
+
     // 🔹 Retorna valor de variável pelo nome
     String obterValor(const String& nome)
     {
-        int pos = ultimaString_.indexOf(nome + "=");
-        if (pos == -1) return "";
+        String s = obterStringCompleta(); // lê toda a flash
+        if (s.startsWith("CFG=")) s = s.substring(4);
 
-        int inicio = pos + nome.length() + 1;
-        int fim = ultimaString_.indexOf(';', inicio);
-        if (fim == -1) fim = ultimaString_.length();
-
-        return ultimaString_.substring(inicio, fim);
+        int start = s.indexOf(nome + "=");
+        if (start == -1) return "";
+        start += nome.length() + 1;
+        int end = s.indexOf(";", start);
+        if (end == -1) end = s.length();
+        return s.substring(start, end);
     }
+
 
     int obterValorInt(const String& nome)
     {

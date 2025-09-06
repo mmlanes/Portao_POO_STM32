@@ -5,6 +5,14 @@
 #include <vector>
 #include <algorithm>
 
+enum class TipoVariavel {
+    INT32,
+    UINT32,
+    UINT16,
+    FLOAT,
+    BOOL,
+    DESCONHECIDO
+};
 // =========================
 // Classe base
 // =========================
@@ -12,7 +20,7 @@ class VariavelBase
 {
 public:
     virtual ~VariavelBase() = default;
-
+    virtual TipoVariavel tipo() const = 0; 
     virtual String obterNome() const = 0;
     virtual bool ehPersistente() const = 0;
     virtual String paraString() const = 0;
@@ -178,6 +186,16 @@ public:
         } else {
             return String(_valor);
         }
+    }
+
+    TipoVariavel tipo() const override 
+    {
+        if constexpr (std::is_same<T, int32_t>::value) return TipoVariavel::INT32;
+        else if constexpr (std::is_same<T, uint32_t>::value) return TipoVariavel::UINT32;
+        else if constexpr (std::is_same<T, uint16_t>::value) return TipoVariavel::UINT16;
+        else if constexpr (std::is_same<T, float>::value) return TipoVariavel::FLOAT;
+        else if constexpr (std::is_same<T, bool>::value) return TipoVariavel::BOOL;
+        else return TipoVariavel::DESCONHECIDO;
     }
 
     // // Converter float para notação científica (3 algarismos significativos)
