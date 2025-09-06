@@ -85,7 +85,7 @@ MensagemLCD mFreqPWM(&modoFreqPWM, "$modo$", "$freqPWM$ Hz", incDecNum, trocarTe
 MensagemLCD mDPWM(&modoDPWM, "$modo$", "$dPWMMax$ %", incDecNum, trocarTela);
 MensagemLCD mAcelPWM(&modoAcelPWM, "$modo$", "$acelPWM$ dPwm/s", incDecNum, trocarTela);
 MensagemLCD mConstADC(&modoConstanteADC, "$modo$", "$adjADC$", incDecNum, trocarTela);
-MensagemLCD mCorrenteProtecao(&modoCorrenteProtecao, "$modo$", "$iProt$ A", incDecNum, trocarTela);
+MensagemLCD mCorrenteProtecao(&modoCorrenteProtecao, "$modo$", "($iMedio$)|Ip=$iProt$ A", incDecNum, trocarTela);
 MensagemLCD mSalvarFlash(&modoSalvarConfigFlash, "$modo$", "$salvarConfigFlash$", "Bts(A+F+P) 5s salvar", trocarTela);
 MensagemLCD mCarregarFlash(&modoCarregarConfigFlash, "$modo$", "$carregarConfigFlash$", "Bts(A+F+P) 5s carreg", trocarTela);
 
@@ -99,9 +99,8 @@ void setup()
     cfg.obterStringCompleta();
     Serial2.println("CFG: " + cfg.obterStringCompleta() + "|");
     CarregarVariaveisFlash();
-    
-    encMax.incrementar();
-    Serial2.println("..");
+    FastADC_PA0_STM32::setupAdcPa0Fast();
+    PWM_PB1_STM32::setupPwmUpDown(freqPWM.obterValor(), FastADC_PA0_STM32::leituraSincronizadaPWM);
     delay(100);
 }
 
@@ -131,6 +130,8 @@ void loop()
         m.enviarMensagem("Config Flash", "Salva", " ", "aguarde 3s");
         delay(3000);
     }
+
+    iMedio.definirValor(FastADC_PA0_STM32::obterGrandezaMediaPeriodica(500));
 
 }
 

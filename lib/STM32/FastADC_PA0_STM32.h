@@ -1,6 +1,7 @@
 #pragma once
 
 #include <Arduino.h>
+#include "Variavel.h"
 
 class FastADC_PA0_STM32
 {
@@ -84,6 +85,18 @@ public:
     {
         return kAjuste_;
     }
+    static float obterGrandezaMediaPeriodica(uint16_t intervaloMs = 500)
+    {
+        static unsigned long ultimoUpdate_ = 0;  
+        static float ultimaMedia_ = 0.0f;         
 
+        unsigned long agora = millis();
+        if (agora - ultimoUpdate_ >= intervaloMs)
+        {
+            ultimaMedia_ = obterGrandezaMedia();
+            ultimoUpdate_ = agora;
+        }
+        return ultimaMedia_;
+    }
 };
 

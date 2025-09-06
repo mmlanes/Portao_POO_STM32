@@ -167,25 +167,25 @@ public:
         return _persistente; 
     }
 
-    // String paraString2() const override 
-    // {
-    //     if constexpr (std::is_same<T, float>::value) 
-    //         return floatParaCientifico(_valor);
-    //     else if constexpr (std::is_same<T, bool>::value) 
-    //         return _valor ? "true" : "false";
-    //     else 
-    //         return String(_valor);
-    // }
-
     String paraString() const override 
     {
-        if constexpr (std::is_same<T, float>::value) {
-            return String(_valor, 5);  // 3 casas decimais
-        } else if constexpr (std::is_same<T, bool>::value) {
-            return _valor ? "1" : "0"; //return _valor ? "true" : "false";
-        } else {
+        if constexpr (std::is_same<T, float>::value) 
+        {
+            if (_valor == 0.0f) return "0.00e+0";
+            int expoente = (int)floor(log10(fabs(_valor)));
+            float mantissa = _valor / pow(10, expoente);
+            char buf[16];
+            dtostrf(mantissa, 0, 2, buf);  // Arduino tem dtostrf para floats
+            String s(buf);
+            s += "e";
+            if (expoente >= 0) s += "+";
+            s += String(expoente);
+            return s;
+        } 
+        else if constexpr (std::is_same<T, bool>::value) 
+            return _valor ? "1" : "0";
+        else 
             return String(_valor);
-        }
     }
 
     TipoVariavel tipo() const override 
@@ -198,41 +198,4 @@ public:
         else return TipoVariavel::DESCONHECIDO;
     }
 
-    // // Converter float para notação científica (3 algarismos significativos)
-    // static String floatParaCientifico2(float valor) 
-    // {
-    //     if (valor == 0.0f) 
-    //         return "0.00e+0";
-    //     int expoente = (int)floor(log10(fabs(valor)));
-    //     float mantissa = valor / pow(10, expoente);
-    //     char buffer[16];
-    //     snprintf(buffer, sizeof(buffer), "%.2fe%d", mantissa, expoente);
-    //     return String(buffer);
-    // }
-
-    // static String floatParaCientifico1(float valor) 
-    // {
-    //     if (valor == 0.0f) return "0.00e+0";
-
-    //     int expoente = (int)floor(log10(fabs(valor)));
-    //     float mantissa = valor / pow(10, expoente);
-
-    //     // garante 2 casas decimais e expoente sempre positivo ou negativo
-    //     char buffer[20];
-    //     snprintf(buffer, sizeof(buffer), "%.2fe%d", mantissa, expoente);
-    //     return String(buffer);
-    // }
-    // static String floatParaCientifico(float valor) 
-    // {
-    //     if (valor == 0.0f) return "0.00e+0";
-
-    //     int expoente = (int)floor(log10(fabs(valor)));
-    //     float mantissa = valor / pow(10, expoente);
-
-    //     char buffer[20];
-    //     // dtostrf(valor, larguraMinima, casasDecimais, buffer)
-    //     // Aqui: 3 casas decimais para mantissa, sempre positivo
-    //     snprintf(buffer, sizeof(buffer), "%.3fe%d", mantissa, expoente);
-    //     return String(buffer);
-    // }
 };
