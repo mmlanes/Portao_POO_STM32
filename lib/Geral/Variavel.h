@@ -173,7 +173,7 @@ public:
         if constexpr (std::is_same<T, float>::value) {
             return String(_valor, 5);  // 3 casas decimais
         } else if constexpr (std::is_same<T, bool>::value) {
-            return _valor ? "true" : "false";
+            return _valor ? "1" : "0"; //return _valor ? "true" : "false";
         } else {
             return String(_valor);
         }

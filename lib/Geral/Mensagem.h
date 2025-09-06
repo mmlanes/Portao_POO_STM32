@@ -5,6 +5,7 @@
 #include <Wire.h>
 #include <LiquidCrystal_I2C.h>
 #include "Variavel.h"
+#include "MensagemLCD.h"
 
 class Mensagem 
 {
@@ -69,6 +70,12 @@ public:
         lcd->print("LCD Iniciado");
         for (int i = 0; i < 4; i++)
             linhasOld[i] = "";
+    }
+    void enviarMensagem(MensagemLCD* mensagem)
+    {
+        if (mensagem->modoAtual() != ModosOperacao::modoAtual())
+            return;
+        enviarMensagem(mensagem->obterL1(), mensagem->obterL2(), mensagem->obterL3(), mensagem->obterL4());
     }
     void enviarMensagem(String L1, String L2 = "", String L3 = "", String L4 = "")
     {

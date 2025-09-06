@@ -10,6 +10,7 @@
 #include "Variavel.h"
 #include "ModosOperacao.h"
 #include "AcoesChaves.h"
+#include "MensagemLCD.h"
 
 // Configuração do hardware
 HardwareSerial Serial2(PA3, PA2); // RX, TX
@@ -25,6 +26,7 @@ ChaveSTM32 btnP(PB4, LOW);
 
 EncoderSTM32 encAB(PA12, PA15, true, false, false);
 
+Variavel<int32_t> encPos("encPos", 0, -100e3, 100e3, 0, false);
 Variavel<bool> encAtivo("encAtivo", true, false, true, true, true);
 Variavel<uint32_t> encMax("encMax", 2750, 100, 10e3, 1, true);
 Variavel<bool> encRev("encRev", false, false, true, true, true);
@@ -35,6 +37,7 @@ Variavel<float> adjADC("adjADC", 1.7e-3f, 0.1e-3f, 10.0e-3f, 0.1e-3f, true);
 Variavel<bool> salvarConfigFlash("salvarConfigFlash", false, false, true, true, false);
 
 ModosOperacao modoNormal("Normal");
+ModosOperacao modoMonitorGeral("Monitor geral");
 ModosOperacao modoEncAtivo("Encoder ativo");
 ModosOperacao modoEncMaximo("Encoder maximo");
 ModosOperacao modoEncReverso("Encoder reverso");
@@ -61,6 +64,16 @@ AcoesChaves inAdjADC(btnA, btnP, btnF, false, false, &modoConstanteADC, [](uint8
 AcoesChaves decAdjADC(btnF, btnP, btnA, false, false, &modoConstanteADC, [](uint8_t v){ adjADC.decrementar(v); }, 500, true, 5000, 10, 10000, 100);
 AcoesChaves acSalvarConfigFlash(btnF, btnP, btnA, true, true, &modoSalvarConfigFlash, [](uint8_t v){ salvarConfigFlash.incrementar(v); }, 5000, false);
 
+MensagemLCD mMonitorGeral(&modoMonitorGeral, "$modo$", "EncAB = $encPos$", " ", " ");
+MensagemLCD mAtivarEnc(&modoEncAtivo, "$modo$", "$encAtivo$", " ", "BtnA: 1, BtnF: 0");
+MensagemLCD mEncMaximo(&modoEncMaximo, "$modo$", "$encMax$", " ", "BtnA: inc, BtnF: dec");
+MensagemLCD mEncReverso(&modoEncReverso, "$modo$", "$encRev$", " ", "BtnA: 1, BtnF: 0");
+MensagemLCD mFreqPWM(&modoFreqPWM, "$modo$", "$freqPWM$ Hz", " ", "BtnA: inc, BtnF: dec");
+MensagemLCD mDPWM(&modoDPWM, "$modo$", "$dPWMMax$ %", " ", "BtnA: inc, BtnF: dec");
+MensagemLCD mAcelPWM(&modoAcelPWM, "$modo$", "$acelPWM$ dPwm/s", " ", "BtnA: inc, BtnF: dec");
+MensagemLCD mConstADC(&modoConstanteADC, "$modo$", "$adjADC$", " ", "BtnA: inc, BtnF: dec");
+MensagemLCD mSalvarFlash(&modoSalvarConfigFlash, "$modo$", "$salvarConfigFlash$", " ", "BtnA: 1, BtnF: 0");
+
 
 //void Testar_Chaves(void);
 
@@ -82,10 +95,13 @@ void loop()
     //Serial2.print(".");
     // Atualizar TODAS as chaves de uma vez
     ChaveSTM32::atualizarTodas();
-    m.enviarMensagem(ModosOperacao::modoAtual()->obterNome(), 
-                     "encAtivo = " + String(encAtivo.obterValor()), 
-                     "freqPWM = $freqPWM$", 
-                     "adjADC = " + String(adjADC.obterValor(),5));
+    // m.enviarMensagem(ModosOperacao::modoAtual()->obterNome(), 
+    //                  "encAtivo = " + String(encAtivo.obterValor()), 
+    //                  "freqPWM = $freqPWM$", 
+    //                  "adjADC = " + String(adjADC.obterValor(),5));
+
+    for (auto* msg : MensagemLCD::todas()) 
+        m.enviarMensagem(msg); 
 
     AcoesChaves::atuarTodas(ModosOperacao::modoAtual());
     //Serial2.println(VariavelBase::todasPersistentesParaString());
