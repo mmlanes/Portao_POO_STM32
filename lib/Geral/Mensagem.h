@@ -15,6 +15,7 @@ private:
     String linhasOld[4];
     int colLCD;
     int linLCD;
+    bool initTardio; // Inicialização tardia do LCD
     uint8_t scanI2C(void)
     {
         serial.println("Escaneando I2C...");
@@ -40,11 +41,14 @@ private:
 
 public:
     Mensagem(HardwareSerial& serialHardware, uint32_t serialBaudRate = 115200, int colunas = 20, int linhas = 4)
-    : serial(serialHardware), colLCD(colunas), linLCD(linhas)
+    : serial(serialHardware), colLCD(colunas), linLCD(linhas), initTardio(false), lcd(nullptr)
     {
         serial.begin(115200);
         serial.println("Serial iniciada..");
+    }
 
+    void iniciar(void)
+    {
         Wire.begin();
         delay(100);
         uint8_t endereco = scanI2C();
@@ -68,8 +72,9 @@ public:
         lcd->clear();
         lcd->setCursor(0, 0);
         lcd->print("LCD Iniciado");
+
         for (int i = 0; i < 4; i++)
-            linhasOld[i] = "";
+            linhasOld[i] = " ";
     }
     void enviarMensagem(MensagemLCD* mensagem)
     {
@@ -79,6 +84,11 @@ public:
     }
     void enviarMensagem(String L1, String L2 = "", String L3 = "", String L4 = "")
     {
+        if (!initTardio)
+        {
+            iniciar();
+            initTardio = true;
+        }
         String L[4] = {L1, L2, L3, L4};
         bool flagMudanca = false;
 

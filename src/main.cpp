@@ -26,11 +26,16 @@ ChaveSTM32 btnF(PB3, LOW);
 ChaveSTM32 btnP(PB4, LOW);
 
 Variavel<int32_t> encPos("encPos", 0, -100e3, 100e3, 1, false);
+Variavel<uint8_t> encPosPartida0a100("encPosPartida0a100", 10, 0, 100, 1, true);
+Variavel<uint8_t> encPosParada0a100("encPosParada0a100", 10, 0, 100, 1, true);
 Variavel<bool> encAtivo("encAtivo", true, false, true, true, true);
 Variavel<uint32_t> encMax("encMax", 2750, 100, 10e3, 1, true);
 Variavel<bool> encRev("encRev", false, false, true, true, true);
 Variavel<uint16_t> freqPWM("freqPWM", 500, 100, 10e3, 10, true);
+Variavel<uint16_t> dPWM("dPWM", 0, 0, 100, 1, false);
 Variavel<uint16_t> dPWMMax("dPWMMax", 60, 10, 100, 1, true);
+Variavel<uint16_t> dPWMPartida("dPWMPartida", 15, 0, 100, 1, true);
+Variavel<uint16_t> dPWMParada("dPWMParada", 10, 0, 100, 1, true);
 Variavel<float> acelPWM("acelPWM", 0.1f, 10.0f, 0.1, 0.1f, true);
 Variavel<float> adjADC("adjADC", 1.7e-3f, 0.1e-3f, 10.0e-3f, 0.1e-3f, true);
 Variavel<float> iMedio("iMedio", 0.0f, 0.0f, 20.0f, 0.0f, false);
@@ -127,6 +132,7 @@ void loop()
         salvarConfigFlash.definirValor(false);
         ConfigFlash cfg;
         String C = VariavelBase::todasPersistentesParaString();
+        Serial2.println("Salvando: " + C);
         cfg.SalvarStringConfig(C);
         m.enviarMensagem("Config Flash", "Salva", " ", "aguarde 3s");
         delay(3000);
@@ -172,21 +178,4 @@ void CarregarVariaveisFlash(void)
         }
     }
 }
-
-
-// void Testar_Chaves(void)
-// {
-//     if (fcS.estaAtiva())
-//         m.enviarMensagem("FCS Ativado", String(fcS.tempoAtiva()) + " ms");
-//     if (fcI.estaAtiva())
-//         m.enviarMensagem("FCI Ativado", String(fcI.tempoAtiva()) + " ms");
-//     if (fcE.estaAtiva())
-//         m.enviarMensagem("FCE Ativado", String(fcE.tempoAtiva()) + " ms");
-//     if (btnA.estaAtiva())
-//         m.enviarMensagem("BtnA Ativado", String(btnA.tempoAtiva()) + " ms");
-//     if (btnF.estaAtiva())
-//         m.enviarMensagem("BtnF Ativado", String(btnF.tempoAtiva()) + " ms");
-//     if (btnP.estaAtiva())
-//         m.enviarMensagem("BtnP Ativado", String(btnP.tempoAtiva()) + " ms");
-// }
 

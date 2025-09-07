@@ -1,6 +1,7 @@
 #pragma once
 
 #include <Arduino.h>
+#include "Variavel.h"
 
 class PWM_PB1_STM32
 {
