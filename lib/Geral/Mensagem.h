@@ -114,12 +114,12 @@ public:
 
         if (flagMudanca)
         {
-            serial.println("----- Mensagem -----");
+            serial.println("+--------------------+");
             for (int i = 0; i < linLCD; i++)
-            {
                 serial.println("|" + L[i] + "|");
-            }
-            serial.println("----- " + String(millis()) + " -----");
+            serial.print("  ----- ");
+            serial.print(millis());
+            serial.println(" -----");
         }
     }
 

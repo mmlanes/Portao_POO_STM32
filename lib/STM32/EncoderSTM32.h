@@ -15,6 +15,7 @@ class EncoderSTM32
     Variavel<uint32_t>& posicaoMaxima_;
     void atualizarPosicaoIsr(void)
     {
+        Serial2.println("ISR Encoder");
         bool a = digitalRead(pinA_);
         bool b = digitalRead(pinB_);
         if (a == b)
@@ -39,6 +40,7 @@ public:
     {
         pinMode(pinA_, INPUT_PULLUP);
         pinMode(pinB_, INPUT_PULLUP);
+        Serial2.println("ISR config");
         if (pinA_is_Isr_)
             attachInterrupt(digitalPinToInterrupt(pinA_), std::bind(&EncoderSTM32::atualizarPosicaoIsr, this), RISING);
         if (!pinA_is_Isr_ && pinB_is_Isr_)

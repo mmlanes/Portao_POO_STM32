@@ -102,6 +102,7 @@ void setup()
     FastADC_PA0_STM32::setupAdcPa0Fast();
     PWM_PB1_STM32::setupPwmUpDown(freqPWM.obterValor(), FastADC_PA0_STM32::leituraSincronizadaPWM);
     delay(100);
+    encPos.definirValor(10);
 }
 
 void loop()
