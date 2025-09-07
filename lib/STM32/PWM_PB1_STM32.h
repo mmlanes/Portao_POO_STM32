@@ -108,17 +108,17 @@ public:
 
         PWM_PB1_STM32::definirDpwmImediato(0);
     }
-    static void definirAceleracao(float dPwmPorSeg)
+     static void definirAceleracao(float dPwmPorSeg)
     {
         if (dPwmPorSeg <= 0)
             dPwmPorSeg = 0.1f;
         aceleracao_ = dPwmPorSeg;
     }
-    static float obterAceleracao(void)
+     static float obterAceleracao(void)
     {
         return aceleracao_;
     }
-    static void definirDpwmMaximo(uint8_t d0a100)
+     static void definirDpwmMaximo(uint8_t d0a100)
     {
         if (d0a100 > 100) 
             d0a100 = 100;
@@ -128,7 +128,7 @@ public:
         if (dpwmAlvo_ > dpwmMaximo_)
             definirDpwmRampa(dpwmMaximo_);
     }
-    static void definirDpwmImediato(uint8_t d0a100)
+     static void definirDpwmImediato(uint8_t d0a100)
     {
         if (d0a100 > dpwmMaximo_) 
             d0a100 = dpwmMaximo_;
@@ -138,13 +138,13 @@ public:
         TIM3->CCR4 = ccr;
         TIM3->CCR1 = ccr / 2;
     }
-    static void definirDpwmRampa(uint8_t d0a100_alvo)
+     static void definirDpwmRampa(uint8_t d0a100_alvo)
     {
         if (d0a100_alvo > dpwmMaximo_) 
             d0a100_alvo = dpwmMaximo_;
         dpwmAlvo_ = d0a100_alvo;
     }
-    static uint8_t obterDpwmAtual(void)
+     static uint8_t obterDpwmAtual(void)
     {
         return dpwmAtual_;
     }
