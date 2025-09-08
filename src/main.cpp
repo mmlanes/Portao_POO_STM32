@@ -24,20 +24,26 @@
 
 void setup()
 {
+    Serial2.println("Iniciando sistema...");
     ConfigFlash cfg;
     cfg.obterStringCompleta();
     Serial2.println("CFG: " + cfg.obterStringCompleta() + "|");
     CarregarVariaveisFlash();
     delay(200);
-    ModosOperacao::modoSeguinte();
+    //ModosOperacao::modoSeguinte();
 }
 
 void loop()
 {
+    // Atualização de variáveis para visualização e controle
     dPWM.definirValor(pwm.obterDpwmAtual());                    // Atualiza Variavel<uint8_t> dPWM
+    posicaoPortao.definirValor(portao.obterPosicaoAtualString()); // Atualiza Variavel<uint8_t> posPortao
+    operacaoPortao.definirValor(portao.obterOperacaoAtualString());// Atualiza Variavel<uint8_t> operPortao
+    // Ações essenciais do sistema
     ChaveSTM32::atualizarTodas();                               // Atualiza todas as chaves
     motor.monitorar();                                          // Atualiza o estado do motor
     pwm.atualizaRampa();                                        // Atualiza a rampa de PWM
+    portao.monitorar();                                         // Atualiza o portão
     AcoesChaves::atuarTodas(ModosOperacao::modoAtual());        // Atualiza as ações das chaves
     iMedio.definirValor(adc.obterGrandezaMediaPeriodica(500));  // Atualiza a média do ADC
     for (auto* msg : MensagemLCD::todas())                      // Envia mensagens para o LCD

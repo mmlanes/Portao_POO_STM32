@@ -9,6 +9,7 @@ private:
     ChaveSTM32& chave1_;
     ChaveSTM32& chave2_;
     ChaveSTM32& chave3_;
+    bool estadoNecessarioChave1_;
     bool estadoNecessarioChave2_;
     bool estadoNecessarioChave3_;
     ModosOperacao* modoAtuar_;
@@ -21,19 +22,20 @@ private:
     uint8_t acelerador2_;
     unsigned long tempoInicioAtuacaoMs_;
     unsigned long tempoUltimaAtuacaoMs_;
-    bool jaExecutou_;   // <--- NOVO
+    bool jaExecutou_;   
     static std::vector<AcoesChaves*> instancias_;
 
 public:
 AcoesChaves(
     ChaveSTM32& chave1, ChaveSTM32& chave2, ChaveSTM32& chave3, 
-    bool estadoNecessarioChave2 = false, bool estadoNecessarioChave3 = false, ModosOperacao* modoAtuar = nullptr,
+    bool estadoNecessarioChave1 = true, bool estadoNecessarioChave2 = false, bool estadoNecessarioChave3 = false, 
+    ModosOperacao* modoAtuar = nullptr,
     void (*funcaoAcao)(uint8_t) = nullptr, uint16_t tempoAtivacaoMs = 0, bool repetir = false,
     uint16_t tempoAcelerador1Ms = 5000, uint8_t acelerador1 = 10,
     uint16_t tempoAcelerador2Ms = 10000,
     uint8_t acelerador2 = 100)
     : chave1_(chave1), chave2_(chave2), chave3_(chave3),
-      estadoNecessarioChave2_(estadoNecessarioChave2), estadoNecessarioChave3_(estadoNecessarioChave3),
+      estadoNecessarioChave1_(estadoNecessarioChave1), estadoNecessarioChave2_(estadoNecessarioChave2), estadoNecessarioChave3_(estadoNecessarioChave3),
       modoAtuar_(modoAtuar), funcaoAcao_(funcaoAcao), 
       tempoAtivacaoMs_(tempoAtivacaoMs), acaoRepetir_(repetir),
       tempoAcelerador1Ms_(tempoAcelerador1Ms), acelerador1_(acelerador1),
@@ -51,7 +53,7 @@ AcoesChaves(
             return; // não está no modo correto
 
          // Verifica se a chave1 está ativa e as outras duas estão nos estados necessários
-        if (chave1_.estaAtiva() && chave2_.estaAtiva()==estadoNecessarioChave2_ && chave3_.estaAtiva()==estadoNecessarioChave3_) 
+        if (chave1_.estaAtiva()==estadoNecessarioChave1_ && chave2_.estaAtiva()==estadoNecessarioChave2_ && chave3_.estaAtiva()==estadoNecessarioChave3_) 
         { 
             if (tempoUltimaAtuacaoMs_ == 0) 
             { 

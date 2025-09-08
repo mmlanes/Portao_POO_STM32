@@ -1,11 +1,10 @@
 #pragma once
 #include <Arduino.h>
+#include <type_traits>
+#include <math.h>
 #include <vector>
 #include <algorithm>
 
-// =========================
-// Enum de tipos suportados
-// =========================
 enum class TipoVariavel {
     INT32,
     UINT32,
@@ -19,10 +18,11 @@ enum class TipoVariavel {
 // =========================
 // Classe base
 // =========================
-class VariavelBase {
+class VariavelBase 
+{
 public:
     virtual ~VariavelBase() = default;
-    virtual TipoVariavel tipo() const = 0;
+    virtual TipoVariavel tipo() const = 0; 
     virtual String obterNome() const = 0;
     virtual bool ehPersistente() const = 0;
     virtual String paraString() const = 0;
@@ -41,7 +41,7 @@ public:
         String resultado = "";
         for (auto v : _todas) {
             if (v->ehPersistente()) {
-                if (resultado.length() > 0)
+                if (resultado.length() > 0) 
                     resultado += ";";
                 resultado += v->obterNome() + "=" + v->paraString();
             }
@@ -57,8 +57,7 @@ public:
             int pos = resultado.indexOf(padrao);
             while (pos >= 0) {
                 String valor = v->paraString();
-                resultado = resultado.substring(0, pos) + valor +
-                            resultado.substring(pos + padrao.length());
+                resultado = resultado.substring(0, pos) + valor + resultado.substring(pos + padrao.length());
                 pos = resultado.indexOf(padrao, pos + valor.length());
             }
         }
@@ -69,7 +68,7 @@ public:
 std::vector<VariavelBase*> VariavelBase::_todas;
 
 // =========================
-// Template genérico → aritméticos
+// Classe template genérica (números e bool)
 // =========================
 template<typename T>
 class Variavel : public VariavelBase {
@@ -85,8 +84,10 @@ public:
     Variavel(String nome, T valorInicial, T minimo, T maximo, T passo, bool persistente = false)
         : _nome(nome), _valor(valorInicial), _min(minimo), _max(maximo), _passo(passo), _persistente(persistente)
     {
-        if (_valor < _min) _valor = _min;
-        if (_valor > _max) _valor = _max;
+        if constexpr (!std::is_same<T, bool>::value) {
+            if (_valor < _min) _valor = _min;
+            if (_valor > _max) _valor = _max;
+        }
         VariavelBase::registrar(this);
     }
 
@@ -94,21 +95,40 @@ public:
         VariavelBase::remover(this);
     }
 
-    void incrementar(uint8_t acelerador = 1) {
+private:
+    // bool → liga/desliga
+    template<typename U = T>
+    typename std::enable_if<std::is_same<U, bool>::value>::type
+    incrementarImpl(uint8_t) { _valor = true; }
+    
+    template<typename U = T>
+    typename std::enable_if<std::is_same<U, bool>::value>::type
+    decrementarImpl(uint8_t) { _valor = false; }
+
+    // numéricos → incremento normal
+    template<typename U = T>
+    typename std::enable_if<!std::is_same<U, bool>::value>::type
+    incrementarImpl(uint8_t acelerador) {
         T incremento = acelerador * _passo;
         if (_valor + incremento <= _max)
             _valor += incremento;
         else if (_valor + _passo <= _max)
             _valor += _passo;
     }
-
-    void decrementar(uint8_t acelerador = 1) {
+    
+    template<typename U = T>
+    typename std::enable_if<!std::is_same<U, bool>::value>::type
+    decrementarImpl(uint8_t acelerador) {
         T incremento = acelerador * _passo;
         if (_valor - incremento >= _min)
             _valor -= incremento;
         else if (_valor - _passo >= _min)
             _valor -= _passo;
     }
+
+public:
+    void incrementar(uint8_t acelerador = 1) { incrementarImpl(acelerador); }
+    void decrementar(uint8_t acelerador = 1) { decrementarImpl(acelerador); }
 
     T obterValor() const { return _valor; }
 
@@ -146,9 +166,10 @@ public:
                 pos += sprintf(buf + pos, "e%+d", expoente);
             return String(buf);
         }
-        else {
+        else if (std::is_same<T, bool>::value)
+            return _valor ? "1" : "0";
+        else
             return String(_valor);
-        }
     }
 
     TipoVariavel tipo() const override {
@@ -156,6 +177,7 @@ public:
         else if (std::is_same<T, uint32_t>::value) return TipoVariavel::UINT32;
         else if (std::is_same<T, uint16_t>::value) return TipoVariavel::UINT16;
         else if (std::is_same<T, float>::value) return TipoVariavel::FLOAT;
+        else if (std::is_same<T, bool>::value) return TipoVariavel::BOOL;
         else return TipoVariavel::DESCONHECIDO;
     }
 };
@@ -193,39 +215,4 @@ public:
     String paraString() const override { return _valor; }
 
     TipoVariavel tipo() const override { return TipoVariavel::STRING; }
-};
-
-// =========================
-// Especialização para bool
-// =========================
-template<>
-class Variavel<bool> : public VariavelBase {
-private:
-    String _nome;
-    bool _valor;
-    bool _persistente;
-
-public:
-    Variavel(String nome, bool valorInicial, bool persistente = false)
-        : _nome(nome), _valor(valorInicial), _persistente(persistente)
-    {
-        VariavelBase::registrar(this);
-    }
-
-    ~Variavel() {
-        VariavelBase::remover(this);
-    }
-
-    void incrementar(uint8_t = 1) { _valor = true; }
-    void decrementar(uint8_t = 1) { _valor = false; }
-
-    bool obterValor() const { return _valor; }
-    void definirValor(bool v) { _valor = v; }
-
-    String obterNome() const override { return _nome; }
-    bool ehPersistente() const override { return _persistente; }
-
-    String paraString() const override { return _valor ? "1" : "0"; }
-
-    TipoVariavel tipo() const override { return TipoVariavel::BOOL; }
 };

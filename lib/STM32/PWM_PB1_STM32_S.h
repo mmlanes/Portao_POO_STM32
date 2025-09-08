@@ -1,35 +1,37 @@
 #pragma once
 #include <Arduino.h>
 #include "Variavel.h"
+#include "FastADC_PA0_STM32_S.h"
 
 class PWM_PB1_STM32_S
 {
 private:
     // Atributos do PWM
-    float aceleracao_ = 1.0f;
-    uint8_t dpwmAtual_ = 0;
-    uint8_t dpwmAlvo_ = 0;
-    uint8_t dpwmMaximo_ = 100;
-    unsigned long tempoInicioRampa_;
-    uint32_t freqHz_;
-    HardwareTimer* timer3_ = nullptr;
+    Variavel<uint16_t>& freqHz_;
+    Variavel<uint8_t>& dpwmAtual_;
+    Variavel<uint8_t>& dpwmMaximo_;
+    Variavel<float>& aceleracao_; // uma porcentagem por segundo
     void (*lerAdcA0_)(void);
+    uint8_t dpwmAlvo_;
+    unsigned long tempoInicioRampa_;
+    static PWM_PB1_STM32_S* instance_; // Ponteiro estático para a instância única Singleton
+    HardwareTimer* timer3_;
     static void isrTim3_(void)
     {
         PWM_PB1_STM32_S& instance = PWM_PB1_STM32_S::getInstance();
         if (instance.lerAdcA0_)
             instance.lerAdcA0_();
     }
-    void setupPwmUpDown(uint32_t freqHz_100a10k, void (*staticLerAdcA0)(void) = nullptr)
+    void setupPwmUpDown(uint16_t freqHz_100a10k, void (*staticLerAdcA0)(void) = nullptr)
     {
         // Limites de frequência
         if (freqHz_100a10k < 100 || freqHz_100a10k > 10000)
             return; // Frequência fora do intervalo permitido
 
-        freqHz_ = freqHz_100a10k;
+        freqHz_.definirValor(freqHz_100a10k);
         if (!timer3_) 
             timer3_ = new HardwareTimer(TIM3);
-        lerAdcA0_ = staticLerAdcA0;
+
         timer3_->attachInterrupt(1, isrTim3_);
         timer3_->resume();
 
@@ -55,7 +57,6 @@ private:
                 break; // Encontrou um valor válido para PSC e ARR
             }
         }
-
         TIM3->PSC = psc;  // Configurar prescaler
         TIM3->ARR = arr;  // Configurar ARR
 
@@ -88,10 +89,21 @@ private:
     }
 
     // Construtor privado
-    PWM_PB1_STM32_S(uint32_t freqHz_100a10k, void (*staticLerAdcA0)(void) = nullptr)
-        : tempoInicioRampa_(millis()), freqHz_(freqHz_100a10k), lerAdcA0_(staticLerAdcA0)
+    PWM_PB1_STM32_S(Variavel<uint16_t>& freqHz, 
+                    Variavel<uint8_t>& dpwmAtual,
+                    Variavel<uint8_t>& dpwmMaximo, 
+                    Variavel<float>& aceleracao, 
+                    void (*staticLerAdcA0)(void) = nullptr)
+        :   freqHz_(freqHz), 
+            dpwmAtual_(dpwmAtual), 
+            dpwmMaximo_(dpwmMaximo),
+            aceleracao_(aceleracao), 
+            lerAdcA0_(staticLerAdcA0), 
+            dpwmAlvo_(0), 
+            tempoInicioRampa_(millis()), 
+            timer3_(nullptr)
     {
-        setupPwmUpDown(freqHz_100a10k, staticLerAdcA0);
+        setupPwmUpDown(freqHz.obterValor(), staticLerAdcA0);
     }
 
 public:
@@ -100,17 +112,25 @@ public:
     PWM_PB1_STM32_S& operator=(const PWM_PB1_STM32_S&) = delete;
 
     // Função pública para obter a instância
-    static PWM_PB1_STM32_S& getInstance(uint32_t freqHz_100a10k = 500, void (*staticLerAdcA0)(void) = nullptr)
+    static PWM_PB1_STM32_S& getInstance(Variavel<uint16_t>& freqHz, 
+                                        Variavel<uint8_t>& dpwmAtual, 
+                                        Variavel<uint8_t>& dpwmMaximo, 
+                                        Variavel<float>& aceleracao, 
+                                        void (*staticLerAdcA0)(void) = nullptr)
     {
-        static PWM_PB1_STM32_S instance(freqHz_100a10k, staticLerAdcA0);
+        static PWM_PB1_STM32_S instance(freqHz, dpwmAtual, dpwmMaximo, aceleracao, staticLerAdcA0);
+        instance_ = &instance;
         return instance;
     }
+
+    // Chamadas posteriores: usa instância existente
+    static PWM_PB1_STM32_S& getInstance() { return *instance_; }
     // Métodos de controle do PWM (não estáticos agora)
     void definirDpwmImediato(uint8_t d0a100)
     {
-        if (d0a100 > dpwmMaximo_) 
-            d0a100 = dpwmMaximo_;
-        dpwmAtual_ = d0a100;
+        if (d0a100 > dpwmMaximo_.obterValor()) 
+            d0a100 = dpwmMaximo_.obterValor();
+        dpwmAtual_.definirValor(d0a100);
         uint32_t ccr = (TIM3->ARR + 1) * d0a100 / 100.0;
         TIM3->CCR4 = ccr;
         TIM3->CCR1 = ccr / 2;
@@ -118,52 +138,60 @@ public:
 
     void definirDpwmRampa(uint8_t d0a100_alvo)
     {
-        if (d0a100_alvo > dpwmMaximo_) 
-            d0a100_alvo = dpwmMaximo_;
+        if (d0a100_alvo > dpwmMaximo_.obterValor()) 
+            d0a100_alvo = dpwmMaximo_.obterValor();
         dpwmAlvo_ = d0a100_alvo;
     }
 
-    uint8_t obterDpwmAtual() const { return dpwmAtual_; }
+    uint8_t obterDpwmAtual() const { return dpwmAtual_.obterValor(); }
 
-    void definirAceleracao(float dPwmPorSeg) { aceleracao_ = (dPwmPorSeg <= 0) ? 0.1f : dPwmPorSeg; }
+    void definirAceleracao(float dPwmPorSeg) { aceleracao_.definirValor( (dPwmPorSeg <= 0) ? 0.1f : dPwmPorSeg ); }
     
-    float obterAceleracao(void) {return aceleracao_;}
+    float obterAceleracao(void) {return aceleracao_.obterValor();}
 
     void definirDpwmMaximo(uint8_t d0a100)
     {
         if (d0a100 > 100) 
             d0a100 = 100;
-        dpwmMaximo_ = d0a100;
-        if (dpwmAtual_ > dpwmMaximo_)
-            definirDpwmImediato(dpwmMaximo_);
-        if (dpwmAlvo_ > dpwmMaximo_)
-            definirDpwmRampa(dpwmMaximo_);
+        dpwmMaximo_.definirValor(d0a100);
+        if (dpwmAtual_.obterValor() > dpwmMaximo_.obterValor())
+            definirDpwmImediato(dpwmMaximo_.obterValor());
+        if (dpwmAlvo_ > dpwmMaximo_.obterValor())
+            definirDpwmRampa(dpwmMaximo_.obterValor());
     }
 
-    uint8_t obterDpwmMaximo() const { return dpwmMaximo_; }
+    uint8_t obterDpwmMaximo() const { return dpwmMaximo_.obterValor(); }
 
-    uint32_t obterFreqHz(void) {return freqHz_;}
+    uint32_t obterFreqHz(void) {return freqHz_.obterValor();}
 
     void atualizaRampa(void)
     {
-        if (dpwmAtual_ == dpwmAlvo_)
+        if (dpwmAtual_.obterValor() == dpwmAlvo_)
+        {
+            tempoInicioRampa_ = millis();
             return;
-
+        }
+        Serial2.println(String(dpwmAtual_.obterValor()) + "/" + String(dpwmAlvo_) + " a=" + String(aceleracao_.obterValor()));
         unsigned long agora = millis();
-        float dPwmPorMs = aceleracao_ / 1000.0f;
-        float dPwmNecessario = (dpwmAlvo_ > dpwmAtual_) ? (dpwmAlvo_ - dpwmAtual_) : (dpwmAtual_ - dpwmAlvo_);
+        float dPwmPorMs = aceleracao_.obterValor() / 1000.0f;
+        float dPwmNecessario = (dpwmAlvo_ > dpwmAtual_.obterValor()) ? (dpwmAlvo_ - dpwmAtual_.obterValor()) : (dpwmAtual_.obterValor() - dpwmAlvo_);
         float dPwmPossivel = dPwmPorMs * (agora - tempoInicioRampa_);
+        if (dPwmPossivel < 1)
+            return; // nada a fazer
         if (dPwmPossivel >= dPwmNecessario)
-            dpwmAtual_ = dpwmAlvo_;
+            dpwmAtual_.definirValor(dpwmAlvo_);
         else
         {
-            if (dpwmAlvo_ > dpwmAtual_)
-                dpwmAtual_ += dPwmPossivel;
+            if (dpwmAlvo_ > dpwmAtual_.obterValor())
+                dpwmAtual_.definirValor(dpwmAtual_.obterValor() + dPwmPossivel);
             else
-                dpwmAtual_ -= dPwmPossivel;
+                dpwmAtual_.definirValor(dPwmPossivel);
         }
+        //Serial2.println(String(tempoInicioRampa_) + "/" + String(agora));
         tempoInicioRampa_ = agora;
-        definirDpwmImediato(dpwmAtual_);
+        definirDpwmImediato(dpwmAtual_.obterValor());
     }
 
 };
+
+PWM_PB1_STM32_S* PWM_PB1_STM32_S::instance_ = nullptr;
