@@ -111,6 +111,12 @@ public:
             pwm_.definirDpwmRampa(dpwm);
             dpwmAlvo_ = dpwm;
         }
+        else if (estadoAtual_ == Estado::Parando && pwm_.obterDpwmAtual()==0) // Já está parando (altera dpwmAlvo)
+        {
+            estadoAlvo_ = Estado::Parado;
+            estadoAtual_ = Estado::Parado;
+            //dpwmAlvo_ = 0;
+        }
     }
 
     void desligar()

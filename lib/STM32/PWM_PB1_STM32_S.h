@@ -18,12 +18,12 @@ private:
     HardwareTimer* timer3_;
     static void isrTim3_(void)
     {
-        PWM_PB1_STM32_S& instance = PWM_PB1_STM32_S::getInstance();
-        if (instance.lerAdcA0_)
-            instance.lerAdcA0_();
+        if (instance_ && instance_->lerAdcA0_)
+            instance_->lerAdcA0_();
     }
-    void setupPwmUpDown(uint16_t freqHz_100a10k, void (*staticLerAdcA0)(void) = nullptr)
+    void setupPwmUpDown(uint32_t freqHz_100a10k, void (*staticLerAdcA0)(void) = nullptr)
     {
+        Serial2.println("Freq PWM: " + String(freqHz_100a10k) + " Hz");
         // Limites de frequência
         if (freqHz_100a10k < 100 || freqHz_100a10k > 10000)
             return; // Frequência fora do intervalo permitido
@@ -103,6 +103,7 @@ private:
             tempoInicioRampa_(millis()), 
             timer3_(nullptr)
     {
+        instance_ = this;
         setupPwmUpDown(freqHz.obterValor(), staticLerAdcA0);
     }
 
@@ -119,11 +120,10 @@ public:
                                         void (*staticLerAdcA0)(void) = nullptr)
     {
         static PWM_PB1_STM32_S instance(freqHz, dpwmAtual, dpwmMaximo, aceleracao, staticLerAdcA0);
-        instance_ = &instance;
         return instance;
     }
 
-    // Chamadas posteriores: usa instância existente
+    // // Chamadas posteriores: usa instância existente
     static PWM_PB1_STM32_S& getInstance() { return *instance_; }
     // Métodos de controle do PWM (não estáticos agora)
     void definirDpwmImediato(uint8_t d0a100)
@@ -185,7 +185,12 @@ public:
             if (dpwmAlvo_ > dpwmAtual_.obterValor())
                 dpwmAtual_.definirValor(dpwmAtual_.obterValor() + dPwmPossivel);
             else
-                dpwmAtual_.definirValor(dPwmPossivel);
+            {
+                if (dpwmAtual_.obterValor() < dPwmPossivel)
+                    dpwmAtual_.definirValor(0);
+                else
+                    dpwmAtual_.definirValor(dpwmAtual_.obterValor() - dPwmPossivel);
+            }
         }
         //Serial2.println(String(tempoInicioRampa_) + "/" + String(agora));
         tempoInicioRampa_ = agora;

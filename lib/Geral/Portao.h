@@ -31,7 +31,6 @@ private:
     // Métodos privados para cada tipo de operação
     uint8_t dPWMComEncoder(uint8_t pos0a100)
     {
-
         float dPWM = 0;
         uint8_t posStart = encPosPartida0a100_.obterValor();
         uint8_t posStop = encPosParada0a100_.obterValor();
@@ -61,23 +60,42 @@ private:
 
     void abrirComEncoder()
     {
-        int8_t pos = encAB_.obterPosicao_N100aP100();
-        uint8_t dPWM = dPWMComEncoder(pos);
-        motor_.mover(Motor::Estado::Horario, dPWM);
+        if (encAB_.obterPosicao() < encAB_.obterPosicaoMaximaAbs()) 
+        {
+            if (motor_.obterEstadoAtual() != Motor::Estado::Horario && fcI_.estaAtiva())
+                encAB_.zerarPosicao();
+            int8_t pos = encAB_.obterPosicao_N100aP100();
+            uint8_t dPWM = dPWMComEncoder(pos);
+            motor_.mover(Motor::Estado::Horario, dPWM);
+        }
+        else
+        {
+            operacaoAtual_ == Operacao::Parar;
+        }
     }
 
     void fecharComEncoder()
     {
-        int8_t pos = encAB_.obterPosicao_N100aP100();
-        if (operacaoAtual_ == Operacao::FecharComEncoder)
-            pos = 100 - encAB_.obterPosicao_N100aP100();
-        uint8_t dPWM = dPWMComEncoder(pos);
-        motor_.mover(Motor::Estado::Antihorario, dPWM);
+        if (encAB_.obterPosicao() > 0) 
+        {
+            if (motor_.obterEstadoAtual() != Motor::Estado::Antihorario && fcS_.estaAtiva())
+                encAB_.setarPosicao();
+            int8_t pos = encAB_.obterPosicao_N100aP100();
+            if (operacaoAtual_ == Operacao::FecharComEncoder)
+                pos = 100 - encAB_.obterPosicao_N100aP100();
+            uint8_t dPWM = dPWMComEncoder(pos);
+            motor_.mover(Motor::Estado::Antihorario, dPWM);
+        }
+        else
+        {
+            operacaoAtual_ == Operacao::Parar;
+        }
     }
 
     void abrirSemEncoder()
     {
         float dPWM = (float)dPWMPartida_.obterValor() * multiplicadorPWM_;
+        Serial2.println("dPWM: " + String(dPWM) + " mult: " + String(multiplicadorPWM_));
         motor_.mover(Motor::Estado::Horario, (uint8_t)dPWM);
     }
 
@@ -106,6 +124,7 @@ private:
             posicaoAtual_ = Posicao::Intermediario;
         else 
             posicaoAtual_ = Posicao::Erro;
+
     }
 
     void atualizarOperacao()
@@ -183,7 +202,7 @@ public:
     void velocidadeNormalSemEncoder()
     {
         multiplicadorPWM_ = 1;
-        Serial2.println(".");
+        Serial2.println(multiplicadorPWM_);
     }
 
     float obterMultiplicadorSemEncoder()

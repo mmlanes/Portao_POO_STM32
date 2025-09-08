@@ -59,6 +59,7 @@ public:
     }
 
     void zerarPosicao(void) { posicao_.definirValor(0); }
+    void setarPosicao(void) { posicao_.definirValor(posicaoMaxima_.obterValor()); }
     int32_t obterPosicao(void) const { return posicao_.obterValor(); }
     void definirPosicao(int32_t p) { posicao_.definirValor(p); }
 
