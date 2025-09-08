@@ -28,7 +28,7 @@ void setup()
     cfg.obterStringCompleta();
     Serial2.println("CFG: " + cfg.obterStringCompleta() + "|");
     CarregarVariaveisFlash();
-    delay(100);
+    delay(200);
     ModosOperacao::modoSeguinte();
 }
 
