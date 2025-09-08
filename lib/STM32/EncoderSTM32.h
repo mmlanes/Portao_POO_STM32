@@ -42,8 +42,8 @@ public:
     EncoderSTM32(Variavel<int32_t>& pos, Variavel<uint32_t>& max, Variavel<bool>& rev, 
                  uint8_t pinA, uint8_t pinB, 
                  bool pinA_is_Isr = true, bool pinB_is_Isr = false, bool contagemReversa = false)
-        : posicao_(pos), posicaoMaxima_(max), reverso_(rev), 
-          pinA_(pinA), pinB_(pinB), pinA_is_Isr_(pinA_is_Isr), pinB_is_Isr_(pinB_is_Isr),
+        : pinA_(pinA), pinB_(pinB), pinA_is_Isr_(pinA_is_Isr), pinB_is_Isr_(pinB_is_Isr),
+          reverso_(rev), posicao_(pos), posicaoMaxima_(max),
           ultimaPosicao_(0), ultimoTempo_(0)
     {
         pinMode(pinA_, INPUT_PULLUP);

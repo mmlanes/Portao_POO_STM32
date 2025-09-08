@@ -6,10 +6,10 @@
 class FastADC_PA0_STM32_S
 {
 private:
-    inline static float kAjuste_ = 1.7e-3f; // Valor real = Valor lido * kAjuste
-    inline static const uint8_t dimensaoAmostrasMediaMovel_ = 100;
-    inline static uint16_t vetorADC_[dimensaoAmostrasMediaMovel_] = {0};
-    inline static uint16_t valorNuloAdc_ = 0;
+    static float kAjuste_;
+    static const uint8_t dimensaoAmostrasMediaMovel_ = 100;
+    static uint16_t vetorADC_[dimensaoAmostrasMediaMovel_];
+    static uint16_t valorNuloAdc_;
 
     FastADC_PA0_STM32_S() 
     { 
@@ -107,3 +107,7 @@ public:
         return ultimaMedia_;
     }
 };
+
+float FastADC_PA0_STM32_S::kAjuste_ = 1.7e-3f; // Valor real = Valor lido * kAjuste
+uint16_t FastADC_PA0_STM32_S::vetorADC_[dimensaoAmostrasMediaMovel_] = {0};
+uint16_t FastADC_PA0_STM32_S::valorNuloAdc_ = 0;

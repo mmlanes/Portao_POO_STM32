@@ -7,21 +7,20 @@
 class Motor
 {
 public:
-    enum class Sentido { Indefinido, Horario, Antihorario };
+    enum class Estado { Parado, Parando, Horario, Antihorario };
 
 private:
     uint8_t pinKD_;
     uint8_t pinKE_;
+    uint8_t dpwmAlvo_;
+    unsigned long tempoEsperaRele_;
     PWM_PB1_STM32_S& pwm_;
 
-    Sentido sentidoAtual_ = Sentido::Indefinido;
-    Sentido sentidoAlvo_ = Sentido::Indefinido;
+    Estado estadoAtual_ = Estado::Parado;
+    Estado estadoAlvo_ = Estado::Parado;
 
     unsigned long tempoPwmZero_ = 0;
     bool pwmZerado_ = false;
-
-    enum class Estado { Parado, MudandoParaIndefinido, AtuandoSentido };
-    Estado estado_ = Estado::Parado;
 
     void atualizarPwmZero()
     {
@@ -39,89 +38,113 @@ private:
 
     bool podeAtuarRele() const
     {
-        return pwmZerado_ && (millis() - tempoPwmZero_ >= 1000);
+        return pwmZerado_ && ((millis() - tempoPwmZero_) >= tempoEsperaRele_);
     }
 
-    void aplicarReles(Sentido sentido)
+    void aplicarRelesImediato(Estado estado)
     {
-        switch (sentido)
+        switch (estado)
         {
-            case Sentido::Horario:
+            case Estado::Horario:
                 digitalWrite(pinKD_, LOW);
                 digitalWrite(pinKE_, LOW);
                 break;
-            case Sentido::Antihorario:
+            case Estado::Antihorario:
                 digitalWrite(pinKD_, HIGH);
                 digitalWrite(pinKE_, HIGH);
                 break;
-            case Sentido::Indefinido:
+            case Estado::Parando:
+                break;
+            case Estado::Parado:
                 digitalWrite(pinKD_, LOW);
                 digitalWrite(pinKE_, HIGH);
                 break;
         }
-        sentidoAtual_ = sentido;
+        estadoAtual_ = estado;
     }
 
 public:
-    Motor(uint8_t pinKD, uint8_t pinKE, PWM_PB1_STM32_S& pwm)
-        : pinKD_(pinKD), pinKE_(pinKE), pwm_(pwm)
+    Motor(uint8_t pinKD, uint8_t pinKE, PWM_PB1_STM32_S& pwm, unsigned long tempoEspera = 1000)
+        : pinKD_(pinKD), pinKE_(pinKE), dpwmAlvo_(0), tempoEsperaRele_(tempoEspera), pwm_(pwm)
     {
         pinMode(pinKD_, OUTPUT);
         pinMode(pinKE_, OUTPUT);
-        aplicarReles(Sentido::Indefinido);
+        aplicarRelesImediato(Estado::Parado);
     }
 
-    Sentido obterSentido() const { return sentidoAtual_; }
+    Estado obterEstadoAtual() const { return estadoAtual_; }
+    Estado obterEstadoAlvo() const { return estadoAlvo_; }
 
-    void ligar(Sentido sentido)
+    void definirTempoEspera(unsigned long tempo) { tempoEsperaRele_ = tempo; }
+
+    void mover(Estado estado, uint8_t dpwm)
     {
-        if (sentido == Sentido::Indefinido) 
+        // Validação de parâmetros
+        if (estado == Estado::Parado) 
             return;
-        if (sentidoAtual_ == Sentido::Indefinido)
-        {
+
+        if (dpwm > 100) // Assumindo PWM 0-100%
+            dpwm = 100;
+
+        if (estadoAtual_ == Estado::Parado) 
+        {   // Está parado e vai para Horario ou Antihorario
             if (podeAtuarRele())
             {
-                aplicarReles(sentido);
-                estado_ = Estado::Parado;
+                aplicarRelesImediato(estado);
+                pwm_.definirDpwmRampa(dpwm);
+                estadoAtual_ = estado;
+                dpwmAlvo_ = dpwm;
             }
         }
-        else if (sentidoAtual_ != sentido)
-        {
-            sentidoAlvo_ = sentido;
-            aplicarReles(Sentido::Indefinido);
+        else if ( (estadoAtual_ == Estado::Horario && estado == Estado::Antihorario) ||
+                  (estadoAtual_ == Estado::Antihorario && estado == Estado::Horario) )
+        {   // Quer ir para estado oposto (precisa parar primeiro)
+            estadoAlvo_ = estado;
+            //aplicarRelesImediato(Estado::Parado);
             pwm_.definirDpwmRampa(0);
-            estado_ = Estado::MudandoParaIndefinido;
+            dpwmAlvo_ = 0;
+            estadoAtual_ = Estado::Parando;
+        }
+        else if (estadoAtual_ == estado) // Já está no próprio estado (altera dpwm)
+        {
+            estadoAlvo_ = estado;
+            pwm_.definirDpwmRampa(dpwm);
+            dpwmAlvo_ = dpwm;
         }
     }
 
     void desligar()
     {
-        if (sentidoAtual_ != Sentido::Indefinido)
+        if (estadoAtual_ == Estado::Horario || estadoAtual_ == Estado::Antihorario)
         {
-            sentidoAlvo_ = Sentido::Indefinido;
+            estadoAlvo_ = Estado::Parado;
             pwm_.definirDpwmRampa(0);
-            estado_ = Estado::MudandoParaIndefinido;
+            dpwmAlvo_ = 0;
+            estadoAtual_ = Estado::Parando;
         }
     }
 
     void monitorar()
     {
         atualizarPwmZero();
-        switch (estado_)
+        if (estadoAtual_ == Estado::Parando && estadoAlvo_ == Estado::Parado )
+        {   // Vai de parando para parado
+            if (podeAtuarRele())
+            {
+                aplicarRelesImediato(estadoAlvo_);
+                pwm_.definirDpwmRampa(0); 
+                dpwmAlvo_ = 0;
+                estadoAtual_ = estadoAlvo_;
+            }
+        }
+        else if ( (estadoAtual_ == Estado::Parado || estadoAtual_ == Estado::Parando) && 
+                   dpwmAlvo_ > 0 &&
+                  (estadoAlvo_ == Estado::Horario || estadoAlvo_ == Estado::Antihorario) )
         {
-            case Estado::MudandoParaIndefinido:
-                if (podeAtuarRele() && pwm_.obterDpwmAtual() == 0)
-                {   // Aplicar sentido alvo
-                    if (sentidoAlvo_ != Sentido::Indefinido)
-                        aplicarReles(sentidoAlvo_);
-                    estado_ = Estado::Parado;
-                    sentidoAlvo_ = Sentido::Indefinido;
-                }
-                break;
-            case Estado::Parado:
-            case Estado::AtuandoSentido:
-                // Nada a fazer aqui
-                break;
+            if (pwm_.obterDpwmAtual() == dpwmAlvo_)
+                estadoAtual_ = estadoAlvo_;
+            else
+                pwm_.definirDpwmRampa(dpwmAlvo_);
         }
     }
 };

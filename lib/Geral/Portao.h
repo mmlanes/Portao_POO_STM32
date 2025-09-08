@@ -28,7 +28,7 @@ private:
     Operacao operacaoAtual_ = Operacao::Nenhuma;
 
     // Métodos privados para cada tipo de operação
-    void moverComEncoder(int8_t pos)
+    uint8_t dPWMComEncoder(int8_t pos)
     {
         float dPWM = 0;
         uint8_t posStart = encPosPartida0a100_.obterValor();
@@ -51,40 +51,33 @@ private:
             else if (dPWM < 0)
                 dPWM = 0;
         }
+        return (uint8_t)dPWM;
     }
 
     void abrirComEncoder()
     {
-        if (motor_.obterSentido() == Motor::Sentido::Antihorario)
-        {
-            motor_.desligar();
-            return;
-        }
         int8_t pos = encAB_.obterPosicao_N100aP100();
-        moverComEncoder( pos );
+        uint8_t dPWM = dPWMComEncoder(pos);
+        motor_.mover(Motor::Estado::Horario, dPWM);
     }
 
     void fecharComEncoder()
     {
-        if (motor_.obterSentido() == Motor::Sentido::Horario)
-        {
-            motor_.desligar();
-            return;
-        }
-        int8_t pos = 0;
+        int8_t pos = encAB_.obterPosicao_N100aP100();
         if (operacaoAtual_ == Operacao::Fechar)
             pos = 100 - encAB_.obterPosicao_N100aP100();
-        moverComEncoder( pos );
+        uint8_t dPWM = dPWMComEncoder(pos);
+        motor_.mover(Motor::Estado::Antihorario, dPWM);
     }
 
     void abrirSemEncoder()
     {
-
+        motor_.mover(Motor::Estado::Horario, dPWMPartida_.obterValor());
     }
 
     void fecharSemEncoder()
     {
-
+        motor_.mover(Motor::Estado::Antihorario, dPWMParada_.obterValor());
     }
 
     void desligarMotor()

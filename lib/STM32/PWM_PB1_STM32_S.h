@@ -89,7 +89,7 @@ private:
 
     // Construtor privado
     PWM_PB1_STM32_S(uint32_t freqHz_100a10k, void (*staticLerAdcA0)(void) = nullptr)
-        : freqHz_(freqHz_100a10k), lerAdcA0_(staticLerAdcA0), tempoInicioRampa_(millis())
+        : tempoInicioRampa_(millis()), freqHz_(freqHz_100a10k), lerAdcA0_(staticLerAdcA0)
     {
         setupPwmUpDown(freqHz_100a10k, staticLerAdcA0);
     }

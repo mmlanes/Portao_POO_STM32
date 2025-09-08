@@ -77,7 +77,7 @@ public:
 
 };
 
-inline std::vector<VariavelBase*> VariavelBase::_todas;
+std::vector<VariavelBase*> VariavelBase::_todas;
 
 // =========================
 // Classe template genérica
@@ -106,33 +106,50 @@ public:
         VariavelBase::remover(this);
     }
 
+private:
+    // Funções auxiliares para tratar tipos booleanos vs não-booleanos
+    template<typename U = T>
+    typename std::enable_if<std::is_same<U, bool>::value>::type
+    incrementarImpl(uint8_t acelerador) {
+        _valor = true;
+    }
+    
+    template<typename U = T>
+    typename std::enable_if<!std::is_same<U, bool>::value>::type
+    incrementarImpl(uint8_t acelerador) {
+        T incremento = acelerador * _passo;
+        if (_valor + incremento <= _max)
+            _valor += incremento;
+        else if (_valor + _passo <= _max)
+            _valor += _passo;
+    }
+    
+    template<typename U = T>
+    typename std::enable_if<std::is_same<U, bool>::value>::type
+    decrementarImpl(uint8_t acelerador) {
+        _valor = false;
+    }
+    
+    template<typename U = T>
+    typename std::enable_if<!std::is_same<U, bool>::value>::type
+    decrementarImpl(uint8_t acelerador) {
+        T incremento = acelerador * _passo;
+        if (_valor - incremento >= _min)
+            _valor -= incremento;
+        else if (_valor - _passo >= _min)
+            _valor -= _passo;
+    }
+
+public:
     // Métodos de manipulação
     void incrementar(uint8_t acelerador = 1) 
     {
-        if constexpr (std::is_same<T, bool>::value) 
-            _valor = true;
-        else 
-        {
-            T incremento = acelerador * _passo;
-            if (_valor + incremento <= _max)
-                _valor += incremento;
-            else if (_valor + _passo <= _max)
-                _valor += _passo;
-        }
+        incrementarImpl(acelerador);
     }
 
     void decrementar(uint8_t acelerador = 1) 
     {
-        if constexpr (std::is_same<T, bool>::value) 
-            _valor = false;
-        else 
-        {
-            T incremento = acelerador * _passo;
-            if (_valor - incremento >= _min)
-                _valor -= incremento;
-            else if (_valor - _passo >= _min)
-                _valor -= _passo;
-        }
+        decrementarImpl(acelerador);
     }
 
     T obterValor() const 
@@ -169,7 +186,7 @@ public:
 
     // String paraString() const override 
     // {
-    //     if constexpr (std::is_same<T, float>::value) 
+    //     if (std::is_same<T, float>::value) 
     //     {
     //         if (_valor == 0.0f) return "0.00e+0";
     //         int expoente = (int)floor(log10(fabs(_valor)));
@@ -182,7 +199,7 @@ public:
     //         s += String(expoente);
     //         return s;
     //     } 
-    //     else if constexpr (std::is_same<T, bool>::value) 
+    //     else if (std::is_same<T, bool>::value) 
     //         return _valor ? "1" : "0";
     //     else 
     //         return String(_valor);
@@ -190,7 +207,7 @@ public:
 
     // String paraString() const override //78,3%
     // {
-    //     if constexpr (std::is_same<T, float>::value)
+    //     if (std::is_same<T, float>::value)
     //     {
     //         if (_valor == 0.0f)
     //             return "0.00e+0";
@@ -229,7 +246,7 @@ public:
     //         s += String(expoente);
     //         return s;
     //     }
-    //     else if constexpr (std::is_same<T, bool>::value)
+    //     else if (std::is_same<T, bool>::value)
     //         return _valor ? "1" : "0";
     //     else
     //         return String(_valor);
@@ -238,7 +255,7 @@ public:
 
 String paraString() const override //78,0%
 {
-    if constexpr (std::is_same<T, float>::value)
+    if (std::is_same<T, float>::value)
     {
         if (_valor == 0.0f) return "0.00e+0";
         float val = _valor;
@@ -260,7 +277,7 @@ String paraString() const override //78,0%
             pos += sprintf(buf + pos, "e%+d", expoente);
         return String(buf);
     }
-    else if constexpr (std::is_same<T, bool>::value)
+    else if (std::is_same<T, bool>::value)
         return _valor ? "1" : "0";
     else
         return String(_valor);
@@ -268,7 +285,7 @@ String paraString() const override //78,0%
 
 // String paraString() const override //77.3%
 // {
-//     if constexpr (std::is_same<T, float>::value)
+//     if (std::is_same<T, float>::value)
 //     {
 //         if (_valor == 0.0f)
 //             return "0";
@@ -378,7 +395,7 @@ String paraString() const override //78,0%
 //         buf[pos] = '\0';
 //         return String(buf);
 //     }
-//     else if constexpr (std::is_same<T, bool>::value)
+//     else if (std::is_same<T, bool>::value)
 //         return _valor ? "1" : "0";
 //     else
 //         return String(_valor);
@@ -386,7 +403,7 @@ String paraString() const override //78,0%
 
 // String paraString() const override //77.3% 
 // {
-//     if constexpr (std::is_same<T, float>::value)
+//     if (std::is_same<T, float>::value)
 //     {
 //         if (_valor == 0.0f)
 //             return "0";
@@ -502,7 +519,7 @@ String paraString() const override //78,0%
 //         buf[pos] = '\0';
 //         return String(buf);
 //     }
-//     else if constexpr (std::is_same<T, bool>::value)
+//     else if (std::is_same<T, bool>::value)
 //         return _valor ? "1" : "0";
 //     else
 //         return String(_valor);
@@ -510,7 +527,7 @@ String paraString() const override //78,0%
 
 // String paraString() const override //77.1%
 // {
-//     if constexpr (std::is_same<T, float>::value)
+//     if (std::is_same<T, float>::value)
 //     {
 //         if (_valor == 0.0f)
 //             return "0";
@@ -596,7 +613,7 @@ String paraString() const override //78,0%
 //         buf[pos] = '\0';
 //         return String(buf);
 //     }
-//     else if constexpr (std::is_same<T, bool>::value)
+//     else if (std::is_same<T, bool>::value)
 //         return _valor ? "1" : "0";
 //     else
 //         return String(_valor);
@@ -604,7 +621,7 @@ String paraString() const override //78,0%
 
 // String paraString() const override //76.9%
 // {
-//     if constexpr (std::is_same<T, float>::value)
+//     if (std::is_same<T, float>::value)
 //     {
 //         if (_valor == 0.0f) return "0";
 
@@ -656,7 +673,7 @@ String paraString() const override //78,0%
 //         buf[pos] = '\0';
 //         return String(buf);
 //     }
-//     else if constexpr (std::is_same<T, bool>::value)
+//     else if (std::is_same<T, bool>::value)
 //         return _valor ? "1" : "0";
 //     else
 //         return String(_valor);
@@ -665,11 +682,11 @@ String paraString() const override //78,0%
 
     TipoVariavel tipo() const override 
     {
-        if constexpr (std::is_same<T, int32_t>::value) return TipoVariavel::INT32;
-        else if constexpr (std::is_same<T, uint32_t>::value) return TipoVariavel::UINT32;
-        else if constexpr (std::is_same<T, uint16_t>::value) return TipoVariavel::UINT16;
-        else if constexpr (std::is_same<T, float>::value) return TipoVariavel::FLOAT;
-        else if constexpr (std::is_same<T, bool>::value) return TipoVariavel::BOOL;
+        if (std::is_same<T, int32_t>::value) return TipoVariavel::INT32;
+        else if (std::is_same<T, uint32_t>::value) return TipoVariavel::UINT32;
+        else if (std::is_same<T, uint16_t>::value) return TipoVariavel::UINT16;
+        else if (std::is_same<T, float>::value) return TipoVariavel::FLOAT;
+        else if (std::is_same<T, bool>::value) return TipoVariavel::BOOL;
         else return TipoVariavel::DESCONHECIDO;
     }
 
