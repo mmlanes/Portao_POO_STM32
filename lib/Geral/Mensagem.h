@@ -41,7 +41,7 @@ private:
 
 public:
     Mensagem(HardwareSerial& serialHardware, uint32_t serialBaudRate = 115200, int colunas = 20, int linhas = 4)
-    : serial(serialHardware), colLCD(colunas), linLCD(linhas), initTardio(false), lcd(nullptr)
+    : serial(serialHardware), lcd(nullptr), colLCD(colunas), linLCD(linhas), initTardio(false)
     {
         serial.begin(115200);
         serial.println("Serial iniciada..");

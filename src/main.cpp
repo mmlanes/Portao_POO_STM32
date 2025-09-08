@@ -34,20 +34,15 @@ void setup()
 
 void loop()
 {
-    dPWM.definirValor(pwm.obterDpwmAtual());
-    ChaveSTM32::atualizarTodas();
-    motor.monitorar();
-    pwm.atualizaRampa();
-
-    for (auto* msg : MensagemLCD::todas()) 
-        m.enviarMensagem(msg); 
-
-    AcoesChaves::atuarTodas(ModosOperacao::modoAtual());
-
-    CarregarSalvarVariaveisFlash();
-
-    iMedio.definirValor(adc.obterGrandezaMediaPeriodica(500));
-
+    dPWM.definirValor(pwm.obterDpwmAtual());                    // Atualiza Variavel<uint8_t> dPWM
+    ChaveSTM32::atualizarTodas();                               // Atualiza todas as chaves
+    motor.monitorar();                                          // Atualiza o estado do motor
+    pwm.atualizaRampa();                                        // Atualiza a rampa de PWM
+    AcoesChaves::atuarTodas(ModosOperacao::modoAtual());        // Atualiza as ações das chaves
+    iMedio.definirValor(adc.obterGrandezaMediaPeriodica(500));  // Atualiza a média do ADC
+    for (auto* msg : MensagemLCD::todas())                      // Envia mensagens para o LCD
+        m.enviarMensagem(msg);
+    CarregarSalvarVariaveisFlash();                             // Carrega ou salva variáveis na Flash
 }
 
 

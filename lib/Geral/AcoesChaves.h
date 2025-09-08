@@ -38,7 +38,7 @@ AcoesChaves(
       tempoAtivacaoMs_(tempoAtivacaoMs), acaoRepetir_(repetir),
       tempoAcelerador1Ms_(tempoAcelerador1Ms), acelerador1_(acelerador1),
       tempoAcelerador2Ms_(tempoAcelerador2Ms), acelerador2_(acelerador2),
-      tempoUltimaAtuacaoMs_(0), tempoInicioAtuacaoMs_(0),
+      tempoInicioAtuacaoMs_(0), tempoUltimaAtuacaoMs_(0),
       jaExecutou_(false)
     {
         instancias_.push_back(this);

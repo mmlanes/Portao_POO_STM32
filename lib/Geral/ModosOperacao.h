@@ -6,7 +6,7 @@ class ModosOperacao
 {
 private:
     String nomeModo;
-    inline static int8_t modoAtual_ = -1;
+    static int8_t modoAtual_;
     static std::vector<ModosOperacao*>& obterListaModos() 
     {
         static std::vector<ModosOperacao*> lista;
@@ -27,7 +27,7 @@ public:
     static ModosOperacao* modoAtual(void)
     {
         auto& lista = obterListaModos();
-        if (modoAtual_ < 0 || modoAtual_ >= lista.size())
+        if (modoAtual_ < 0 || modoAtual_ >= (int8_t)lista.size())
             return nullptr;
         return lista[modoAtual_];
     }
@@ -36,7 +36,7 @@ public:
         auto& lista = obterListaModos();
         if (lista.size() == 0)
             modoAtual_ = -1;
-        else if (modoAtual_ < (lista.size()-1))
+        else if (modoAtual_ < (int8_t)(lista.size()-1))
             modoAtual_++;
         else
             modoAtual_ = 0;
@@ -52,3 +52,5 @@ public:
             modoAtual_ = lista.size()-1;
     }
 };
+
+int8_t ModosOperacao::modoAtual_ = -1;
