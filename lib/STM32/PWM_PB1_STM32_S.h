@@ -1,7 +1,6 @@
 #pragma once
 #include <Arduino.h>
 #include "Variavel.h"
-#include "FastADC_PA0_STM32_S.h"
 
 class PWM_PB1_STM32_S
 {
@@ -23,7 +22,6 @@ private:
     }
     void setupPwmUpDown(uint32_t freqHz_100a10k, void (*staticLerAdcA0)(void) = nullptr)
     {
-        Serial2.println("Freq PWM: " + String(freqHz_100a10k) + " Hz");
         // Limites de frequência
         if (freqHz_100a10k < 100 || freqHz_100a10k > 10000)
             return; // Frequência fora do intervalo permitido
@@ -171,7 +169,6 @@ public:
             tempoInicioRampa_ = millis();
             return;
         }
-        Serial2.println(String(dpwmAtual_.obterValor()) + "/" + String(dpwmAlvo_) + " a=" + String(aceleracao_.obterValor()));
         unsigned long agora = millis();
         float dPwmPorMs = aceleracao_.obterValor() / 1000.0f;
         float dPwmNecessario = (dpwmAlvo_ > dpwmAtual_.obterValor()) ? (dpwmAlvo_ - dpwmAtual_.obterValor()) : (dpwmAtual_.obterValor() - dpwmAlvo_);

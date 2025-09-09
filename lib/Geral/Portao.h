@@ -50,11 +50,6 @@ private:
             
             if (dPWM > 100) dPWM = 100; else if (dPWM < 0) dPWM = 0;
         }
-        static float dPWM_old = 0;
-        if (dPWM != dPWM_old)
-            Serial2.println("dPWM: " + String(dPWM) + " pos0a100: " + String(pos0a100) + " posStart: " + String(posStart) + " posStop: " + String(posStop) +
-                            " pwmStart: " + String(pwmStart) + " pwmStop: " + String(pwmStop));
-        dPWM_old = dPWM;
         return (uint8_t)dPWM;
     }
 
@@ -95,7 +90,6 @@ private:
     void abrirSemEncoder()
     {
         float dPWM = (float)dPWMPartida_.obterValor() * multiplicadorPWM_;
-        Serial2.println("dPWM: " + String(dPWM) + " mult: " + String(multiplicadorPWM_));
         motor_.mover(Motor::Estado::Horario, (uint8_t)dPWM);
     }
 
@@ -164,7 +158,7 @@ public:
                 operacaoAtual_ = Operacao::AbrirSemEncoder;
         }
         else
-            operacaoAtual_ = Operacao::Nenhuma;
+            operacaoAtual_ = Operacao::Parar;
     }
 
     void fechar()
@@ -187,22 +181,19 @@ public:
 
     void abrirFecharAceleradoSemEncoder()
     {
-        if (operacaoAtual_==Operacao::AbrirSemEncoder || operacaoAtual_==Operacao::FecharComEncoder )
+        if (operacaoAtual_==Operacao::AbrirSemEncoder || operacaoAtual_==Operacao::FecharSemEncoder )
             multiplicadorPWM_ = 3;
-        Serial2.println(multiplicadorPWM_);
     }
 
     void abrirFecharDesaceleradoSemEncoder()
     {
-        if (operacaoAtual_==Operacao::AbrirSemEncoder || operacaoAtual_==Operacao::FecharComEncoder )
+        if (operacaoAtual_==Operacao::AbrirSemEncoder || operacaoAtual_==Operacao::FecharSemEncoder )
             multiplicadorPWM_ = 0.5;
-        Serial2.println(multiplicadorPWM_);
     }
 
     void velocidadeNormalSemEncoder()
     {
         multiplicadorPWM_ = 1;
-        Serial2.println(multiplicadorPWM_);
     }
 
     float obterMultiplicadorSemEncoder()

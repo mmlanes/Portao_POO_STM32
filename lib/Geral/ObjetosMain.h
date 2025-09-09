@@ -12,7 +12,6 @@
 #include "FastADC_PA0_STM32_S.h"
 #include "Variavel.h"
 #include "ModosOperacao.h"
-//#include "AcoesChaves.h"
 #include "ChavesCombinadas.h"
 #include "AcoesChavesCombinadas.h"
 #include "MensagemLCD.h"
@@ -106,8 +105,16 @@ ChavesCombinadas apF_MN({&btnA, &btnP, &btnF}, {false, false, true}); // fecharP
 AcoesChavesCombinadas fecharPortao(apF_MN, &modoNormal, [](uint8_t v){ portao.fechar(); }, 1000, false);
 ChavesCombinadas aPf_MN({&btnA, &btnP, &btnF}, {false, true, false}); // pararPortao
 AcoesChavesCombinadas pararPortao(aPf_MN, &modoNormal, [](uint8_t v){ portao.parar(); }, 50, false);
-ChavesCombinadas APf_MN({&btnA, &btnP, &btnF}, {true, true, false}); // desacelerarPortao
-AcoesChavesCombinadas desacelerarPortao(APf_MN, &modoNormal, [](uint8_t v){ portao.abrirFecharDesaceleradoSemEncoder(); }, 2000, false);
+// Modo normal: acelerado
+ChavesCombinadas Apf_MN_Ac({&btnA, &btnP, &btnF}, {true, false, false}); // acelerarAbrirPortao
+AcoesChavesCombinadas acelerarAbrirPortao(Apf_MN_Ac, &modoNormal, [](uint8_t v){ portao.abrirFecharAceleradoSemEncoder(); }, 2000, false);
+ChavesCombinadas apF_MN_Ac({&btnA, &btnP, &btnF}, {false, false, true}); // acelerarFecharPortao
+AcoesChavesCombinadas acelerarFecharPortao(apF_MN_Ac, &modoNormal, [](uint8_t v){ portao.abrirFecharAceleradoSemEncoder(); }, 2000, false);
+// Modo normal: desacelerado
+ChavesCombinadas ApF_MN_Des({&btnA, &btnP, &btnF}, {true, false, true}); // desacelerarPortao
+AcoesChavesCombinadas desacelerarPortao(ApF_MN_Des, &modoNormal, [](uint8_t v){ portao.abrirFecharDesaceleradoSemEncoder(); }, 2000, false);
+//ChavesCombinadas aPF_MN_Des({&btnA, &btnP, &btnF}, {false, true, true}); // desacelerarFecharPortao
+//AcoesChavesCombinadas desacelerarFecharPortao(aPF_MN_Des, &modoNormal, [](uint8_t v){ portao.abrirFecharDesaceleradoSemEncoder(); }, 2000, false);
 ChavesCombinadas apf_MN({&btnA, &btnP, &btnF}, {false, false, false}); // velocidadeNormalPortao
 AcoesChavesCombinadas velocidadeNormalPortao(apf_MN, &modoNormal, [](uint8_t v){ portao.velocidadeNormalSemEncoder(); }, 500, false);
 // Modo EncoderAtivo

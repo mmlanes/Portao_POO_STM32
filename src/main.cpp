@@ -9,7 +9,6 @@
 #include "FastADC_PA0_STM32_S.h"
 #include "Variavel.h"
 #include "ModosOperacao.h"
-//#include "AcoesChaves.h"
 #include "ChavesCombinadas.h"
 #include "AcoesChavesCombinadas.h"
 #include "MensagemLCD.h"
