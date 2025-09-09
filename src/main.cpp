@@ -9,7 +9,9 @@
 #include "FastADC_PA0_STM32_S.h"
 #include "Variavel.h"
 #include "ModosOperacao.h"
-#include "AcoesChaves.h"
+//#include "AcoesChaves.h"
+#include "ChavesCombinadas.h"
+#include "AcoesChavesCombinadas.h"
 #include "MensagemLCD.h"
 #include "ConfigFlash.h"
 #include "Motor.h"
@@ -44,7 +46,10 @@ void loop()
     motor.monitorar();                                          // Atualiza o estado do motor
     pwm.atualizaRampa();                                        // Atualiza a rampa de PWM
     portao.monitorar();                                         // Atualiza o portão
-    AcoesChaves::atuarTodas(ModosOperacao::modoAtual());        // Atualiza as ações das chaves
+
+    //AcoesChaves::atuarTodas(ModosOperacao::modoAtual());        // Atualiza as ações das chaves
+    AcoesChavesCombinadas::atuarTodas(ModosOperacao::modoAtual());
+
     iMedio.definirValor(adc.obterGrandezaMediaPeriodica(500));  // Atualiza a média do ADC
     for (auto* msg : MensagemLCD::todas())                      // Envia mensagens para o LCD
         m.enviarMensagem(msg);
