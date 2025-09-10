@@ -51,6 +51,7 @@ Variavel<float> iProt("iProt", 5.0f, 1.0f, 20.0f, 0.1f, true);
 // Variáveis para portão
 Variavel<String> posicaoPortao("posPortao", "", false);
 Variavel<String> operacaoPortao("operPortao", "", false);
+Variavel<float> rampaPWMPosicao("rampaPWMPos", 2.0f, 0.1f, 20.0f, 0.1f, true);
 // Variáveis para salvar e carregar configuração
 Variavel<bool> salvarConfigFlash("salvarConfigFlash", false, false);
 Variavel<bool> carregarConfigFlash("carregarConfigFlash", false, false);
@@ -67,6 +68,7 @@ ModosOperacao modoDPWM("D PWM");
 ModosOperacao modoAcelPWM("Aceleracao PWM");
 ModosOperacao modoConstanteADC("Constante ADC");
 ModosOperacao modoCorrenteProtecao("Corrente protecao");
+ModosOperacao modoRampaPWMPosicao("Rampa PWM/Posicao");
 ModosOperacao modoSalvarConfigFlash("Salvar config Flash");
 ModosOperacao modoCarregarConfigFlash("Carrega config Flash");
 
@@ -83,17 +85,19 @@ MensagemLCD mDPWM(&modoDPWM, "$modo$", "$dPWMMax$ %", incDecNum, trocarTela);
 MensagemLCD mAcelPWM(&modoAcelPWM, "$modo$", "$acelPWM$ dPwm/s", incDecNum, trocarTela);
 MensagemLCD mConstADC(&modoConstanteADC, "$modo$", "$adjADC$", incDecNum, trocarTela);
 MensagemLCD mCorrenteProtecao(&modoCorrenteProtecao, "$modo$", "($iMedio$)|Ip=$iProt$ A", incDecNum, trocarTela);
-MensagemLCD mSalvarFlash(&modoSalvarConfigFlash, "$modo$", "$salvarConfigFlash$", "Bts(A+F+P) 5s salvar", trocarTela);
-MensagemLCD mCarregarFlash(&modoCarregarConfigFlash, "$modo$", "$carregarConfigFlash$", "Bts(A+F+P) 5s carreg", trocarTela);
+MensagemLCD mRampaPWMPosicao(&modoRampaPWMPosicao, "$modo$", "$rampaPWMPos$ %PWM/%PosEnc", incDecNum, trocarTela);
+MensagemLCD mSalvarFlash(&modoSalvarConfigFlash, "$modo$", "$salvarConfigFlash$", "Bts(A+F) 5s salvar", trocarTela);
+MensagemLCD mCarregarFlash(&modoCarregarConfigFlash, "$modo$", "$carregarConfigFlash$", "Bts(A+F) 5s carreg", trocarTela);
 
 auto& adc = FastADC_PA0_STM32_S::getInstance();
 auto& pwm = PWM_PB1_STM32_S::getInstance(freqPWM, dPWM, dPWMMax, acelPWM, FastADC_PA0_STM32_S::leituraSincronizadaPWM); // 5000 Hz e função de leitura do ADC
-//auto& pwm = PWM_PB1_STM32_S::getInstance(freqPWM, dPWM, dPWMMax, acelPWM, nullptr); // 5000 Hz e função de leitura do ADC
 
 Motor motor(PB11, PB10, pwm); // pino KD, KE, PWM
-Portao portao(fcS, fcI, encAB, motor, encAtivo, encPosPartida0a100, encPosParada0a100, dPWMPartida, dPWMParada);
+Portao portao(fcS, fcI, encAB, motor, encAtivo, encPosPartida0a100, encPosParada0a100, dPWMPartida, dPWMParada, rampaPWMPosicao);
 
 // Trocar modo
+ChavesCombinadas APF_N({&btnA, &btnP, &btnF}, {true, true, true}); // Vai para modo normal
+AcoesChavesCombinadas irModoNormal(APF_N, nullptr, [](uint8_t){ ModosOperacao::definirModoAtualPorPosicao(0); }, 2000, true, 50000, 1, 60000, 1); 
 ChavesCombinadas APf_N({&btnA, &btnP, &btnF}, {true, true, false}); // Avançar modo
 AcoesChavesCombinadas avancarModo(APf_N, nullptr, [](uint8_t){ ModosOperacao::modoSeguinte(); }, 2000, true, 50000, 1, 60000, 1); 
 ChavesCombinadas aPF_N({&btnA, &btnP, &btnF}, {false, true, true}); // Voltar modo
@@ -157,11 +161,16 @@ ChavesCombinadas Apf_MP({&btnA, &btnP, &btnF}, {true, false, false}); // incCorr
 AcoesChavesCombinadas incCorrenteProtecao(Apf_MP, &modoCorrenteProtecao, [](uint8_t v){ iProt.incrementar(v); }, 500, true, 5000, 10, 10000, 100);
 ChavesCombinadas apF_MP({&btnA, &btnP, &btnF}, {false, false, true}); // decCorrenteProtecao
 AcoesChavesCombinadas decCorrenteProtecao(apF_MP, &modoCorrenteProtecao, [](uint8_t v){ iProt.decrementar(v); }, 500, true, 5000, 10, 10000, 100);
+// Modo Ajuste rampa PWM/Posição
+ChavesCombinadas Apf_MRP({&btnA, &btnP, &btnF}, {true, false, false}); // incCorrenteProtecao
+AcoesChavesCombinadas incRampaPWMPosicao(Apf_MRP, &modoRampaPWMPosicao, [](uint8_t v){ rampaPWMPosicao.incrementar(v); }, 500, true, 5000, 10, 10000, 100);
+ChavesCombinadas apF_MRP({&btnA, &btnP, &btnF}, {false, false, true}); // decCorrenteProtecao
+AcoesChavesCombinadas decRampaPWMPosicao(apF_MRP, &modoRampaPWMPosicao, [](uint8_t v){ rampaPWMPosicao.decrementar(v); }, 500, true, 5000, 10, 10000, 100);
 // Modo salvar e carregar configuração na flash
-ChavesCombinadas APF_MSF({&btnA, &btnP, &btnF}, {true, true, true}); // acSalvarConfigFlash
-AcoesChavesCombinadas acSalvarConfigFlash(APF_MSF, &modoSalvarConfigFlash, [](uint8_t v){ salvarConfigFlash.incrementar(v); }, 5000, false);
-ChavesCombinadas APF_MCF({&btnA, &btnP, &btnF}, {true, true, true}); // acCarregarConfigFlash
-AcoesChavesCombinadas acCarregarConfigFlash(APF_MCF, &modoCarregarConfigFlash, [](uint8_t v){ carregarConfigFlash.incrementar(v); }, 5000, false);
+ChavesCombinadas ApF_MSF({&btnA, &btnP, &btnF}, {true, false, true}); // acSalvarConfigFlash
+AcoesChavesCombinadas acSalvarConfigFlash(ApF_MSF, &modoSalvarConfigFlash, [](uint8_t v){ salvarConfigFlash.incrementar(v); }, 5000, false);
+ChavesCombinadas ApF_MCF({&btnA, &btnP, &btnF}, {true, false, true}); // acCarregarConfigFlash
+AcoesChavesCombinadas acCarregarConfigFlash(ApF_MCF, &modoCarregarConfigFlash, [](uint8_t v){ carregarConfigFlash.incrementar(v); }, 5000, false);
 
 
 

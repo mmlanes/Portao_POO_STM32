@@ -24,12 +24,34 @@ public:
     {
         return nomeModo;
     }
-    static ModosOperacao* modoAtual(void)
+    static ModosOperacao* obterModoAtual(void)
     {
         auto& lista = obterListaModos();
         if (modoAtual_ < 0 || modoAtual_ >= (int8_t)lista.size())
             return nullptr;
         return lista[modoAtual_];
+    }
+    static void definirModoAtual(ModosOperacao* modo)
+    {
+        auto& lista = obterListaModos();
+        for (size_t i = 0; i < lista.size(); i++)
+        {
+            if (lista[i] == modo)
+            {
+                modoAtual_ = i;
+                return;
+            }
+        }
+    }
+    static void definirModoAtualPorPosicao(uint8_t PosModo)
+    {
+        auto& lista = obterListaModos();
+        if (PosModo < lista.size())
+            modoAtual_ = PosModo;
+    }
+    static int8_t obterPosicaoModoAtual(void)
+    {
+        return modoAtual_;
     }
     static void modoSeguinte(void)
     {

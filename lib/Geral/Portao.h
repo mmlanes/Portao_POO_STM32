@@ -23,7 +23,7 @@ private:
     Variavel<uint8_t>& encPosParada0a100_;
     Variavel<uint8_t>& dPWMPartida_;
     Variavel<uint8_t>& dPWMParada_;
-    float rampaPWMPosicao_; // dPwm por porcentagem da posicao do encoder
+    Variavel<float>& rampaPWMPosicao_; // dPwm por porcentagem da posicao do encoder
     float multiplicadorPWM_; // Acelerar o motor nos modos sem encoder
     Posicao posicaoAtual_;
     Operacao operacaoAtual_;
@@ -42,11 +42,11 @@ private:
             dPWM = (float)pwmStop;
         else
         {
-            float pwm_pos50 = (float)pwmStart + (50 - posStart) * (float)rampaPWMPosicao_;
+            float pwm_pos50 = (float)pwmStart + (50 - posStart) * rampaPWMPosicao_.obterValor();
             if (pos0a100 < 50)
-                dPWM = (float)pwmStart + (float)(pos0a100 - posStart) * (float)rampaPWMPosicao_;
+                dPWM = (float)pwmStart + (float)(pos0a100 - posStart) * rampaPWMPosicao_.obterValor();
             else
-                dPWM = (float)pwm_pos50 - (float)(pos0a100 - 50) * (float)rampaPWMPosicao_;
+                dPWM = (float)pwm_pos50 - (float)(pos0a100 - 50) * rampaPWMPosicao_.obterValor();
             
             if (dPWM > 100) dPWM = 100; else if (dPWM < 0) dPWM = 0;
         }
@@ -55,26 +55,24 @@ private:
 
     void abrirComEncoder()
     {
-        if (encAB_.obterPosicao() < encAB_.obterPosicaoMaximaAbs()) 
+        if (fcI_.estaAtiva()) //motor_.obterEstadoAtual() != Motor::Estado::Horario && 
+            encAB_.zerarPosicao();
+        if (encAB_.obterPosicao() < (int32_t)encAB_.obterPosicaoMaximaAbs()) 
         {
-            if (motor_.obterEstadoAtual() != Motor::Estado::Horario && fcI_.estaAtiva())
-                encAB_.zerarPosicao();
             int8_t pos = encAB_.obterPosicao_N100aP100();
             uint8_t dPWM = dPWMComEncoder(pos);
             motor_.mover(Motor::Estado::Horario, dPWM);
         }
         else
-        {
-            operacaoAtual_ == Operacao::Parar;
-        }
+            operacaoAtual_ = Operacao::Parar;
     }
 
     void fecharComEncoder()
     {
+        if (fcS_.estaAtiva()) // motor_.obterEstadoAtual() != Motor::Estado::Antihorario && 
+            encAB_.setarPosicao();
         if (encAB_.obterPosicao() > 0) 
         {
-            if (motor_.obterEstadoAtual() != Motor::Estado::Antihorario && fcS_.estaAtiva())
-                encAB_.setarPosicao();
             int8_t pos = encAB_.obterPosicao_N100aP100();
             if (operacaoAtual_ == Operacao::FecharComEncoder)
                 pos = 100 - encAB_.obterPosicao_N100aP100();
@@ -82,9 +80,7 @@ private:
             motor_.mover(Motor::Estado::Antihorario, dPWM);
         }
         else
-        {
-            operacaoAtual_ == Operacao::Parar;
-        }
+            operacaoAtual_ = Operacao::Parar;
     }
 
     void abrirSemEncoder()
@@ -139,10 +135,10 @@ private:
 public:
     Portao(ChaveSTM32& fcS, ChaveSTM32& fcI, EncoderSTM32& encAB, Motor& motor, Variavel<bool>& encAtivo,
             Variavel<uint8_t>& encPosPartida0a100, Variavel<uint8_t>& encPosParada0a100, 
-            Variavel<uint8_t>& dPWMPartida, Variavel<uint8_t>& dPWMParada)
+            Variavel<uint8_t>& dPWMPartida, Variavel<uint8_t>& dPWMParada, Variavel<float>& rampaPWMPosicao)
         : fcS_(fcS), fcI_(fcI), encAB_(encAB), motor_(motor), encAtivo_(encAtivo), 
           encPosPartida0a100_(encPosPartida0a100), encPosParada0a100_(encPosParada0a100),
-          dPWMPartida_(dPWMPartida), dPWMParada_(dPWMParada), rampaPWMPosicao_(2), multiplicadorPWM_(1),
+          dPWMPartida_(dPWMPartida), dPWMParada_(dPWMParada), rampaPWMPosicao_(rampaPWMPosicao), multiplicadorPWM_(1),
           posicaoAtual_(Posicao::Intermediario), operacaoAtual_(Operacao::Nenhuma)
         {}
 

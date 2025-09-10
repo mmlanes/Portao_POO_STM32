@@ -47,7 +47,7 @@ void loop()
     portao.monitorar();                                         // Atualiza o portão
 
     //AcoesChaves::atuarTodas(ModosOperacao::modoAtual());        // Atualiza as ações das chaves
-    AcoesChavesCombinadas::atuarTodas(ModosOperacao::modoAtual());
+    AcoesChavesCombinadas::atuarTodas(ModosOperacao::obterModoAtual());
 
     iMedio.definirValor(adc.obterGrandezaMediaPeriodica(500));  // Atualiza a média do ADC
     for (auto* msg : MensagemLCD::todas())                      // Envia mensagens para o LCD

@@ -78,7 +78,7 @@ public:
     }
     void enviarMensagem(MensagemLCD* mensagem)
     {
-        if (mensagem->modoAtual() != ModosOperacao::modoAtual())
+        if (mensagem->obterModo() != ModosOperacao::obterModoAtual())
             return;
         enviarMensagem(mensagem->obterL1(), mensagem->obterL2(), mensagem->obterL3(), mensagem->obterL4());
     }
