@@ -12,9 +12,13 @@ public:
 private:
     uint8_t pinKD_;
     uint8_t pinKE_;
-    uint8_t dpwmAlvo_;
-    unsigned long tempoEsperaRele_;
     PWM_PB1_STM32_S& pwm_;
+    FastADC_PA0_STM32_S& adc_;
+    Variavel<float>& kAjuste_;
+    Variavel<float>& Imedio_;
+    uint16_t tempoEsperaRele_;
+    uint16_t tempoAtualizacaoAutomaticaImedioMs_;
+    uint8_t dpwmAlvo_;
 
     Estado estadoAtual_ = Estado::Parado;
     Estado estadoAlvo_ = Estado::Parado;
@@ -64,8 +68,23 @@ private:
     }
 
 public:
-    Motor(uint8_t pinKD, uint8_t pinKE, PWM_PB1_STM32_S& pwm, unsigned long tempoEspera = 1000)
-        : pinKD_(pinKD), pinKE_(pinKE), dpwmAlvo_(0), tempoEsperaRele_(tempoEspera), pwm_(pwm)
+    Motor(uint8_t pinKD, 
+          uint8_t pinKE, 
+          PWM_PB1_STM32_S& pwm, 
+          FastADC_PA0_STM32_S& adc,
+          Variavel<float>& imedio,
+          Variavel<float>& kADCAjusteValorReal,
+          uint16_t tempoEsperaAcionarReles_ms = 1000,
+          uint16_t tempoAtualizacaoAutomaticaImedio_ms = 500)
+        : pinKD_(pinKD), 
+          pinKE_(pinKE), 
+          pwm_(pwm), 
+          adc_(adc),
+          Imedio_(imedio),
+          kAjuste_(kADCAjusteValorReal),
+          tempoEsperaRele_(tempoEsperaAcionarReles_ms), 
+          tempoAtualizacaoAutomaticaImedioMs_(tempoAtualizacaoAutomaticaImedio_ms),
+          dpwmAlvo_(0)
     {
         pinMode(pinKD_, OUTPUT);
         pinMode(pinKE_, OUTPUT);
@@ -130,9 +149,39 @@ public:
         }
     }
 
+    void definirkADCAjusteValorReal(float kAjuste = 1.7e-3f) { kAjuste_.definirValor(kAjuste); }
+
+    float obterkADCAjusteValorReal(void) { return kAjuste_.obterValor(); }
+
+    float obterImedio(void)
+    {
+        float Im = (float)adc_.obterGrandezaMedia() * kAjuste_.obterValor();
+        Imedio_.definirValor(Im);
+        return Im;
+    }
+
+    void atualizacaoPeriodicaImedio(uint16_t intervaloMs)
+    {
+        static unsigned long ultimoUpdate_ = 0;  
+        static float ultimaMedia_ = 0.0f;         
+
+        if (intervaloMs == 0)
+            return;
+
+        unsigned long agora = millis();
+        if (agora - ultimoUpdate_ >= intervaloMs)
+        {
+            obterImedio();
+            ultimoUpdate_ = agora;
+        }
+    }
+
     void monitorar()
     {
         atualizarPwmZero();
+        atualizacaoPeriodicaImedio(tempoAtualizacaoAutomaticaImedioMs_);
+
+         // Transições de estado
         if (estadoAtual_ == Estado::Parando && estadoAlvo_ == Estado::Parado )
         {   // Vai de parando para parado
             if (podeAtuarRele())

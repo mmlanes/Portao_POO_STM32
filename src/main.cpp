@@ -49,7 +49,7 @@ void loop()
     //AcoesChaves::atuarTodas(ModosOperacao::modoAtual());        // Atualiza as ações das chaves
     AcoesChavesCombinadas::atuarTodas(ModosOperacao::obterModoAtual());
 
-    iMedio.definirValor(adc.obterGrandezaMediaPeriodica(500));  // Atualiza a média do ADC
+    //iMedio.definirValor(adc.obterGrandezaMediaPeriodica(500));  // Atualiza a média do ADC
     for (auto* msg : MensagemLCD::todas())                      // Envia mensagens para o LCD
         m.enviarMensagem(msg);
     CarregarSalvarVariaveisFlash();                             // Carrega ou salva variáveis na Flash

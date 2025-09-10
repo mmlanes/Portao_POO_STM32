@@ -6,7 +6,6 @@
 class FastADC_PA0_STM32_S
 {
 private:
-    static float kAjuste_;
     static const uint8_t dimensaoAmostrasMediaMovel_ = 100;
     static uint16_t vetorADC_[dimensaoAmostrasMediaMovel_];
     static uint16_t valorNuloAdc_;
@@ -14,6 +13,7 @@ private:
     FastADC_PA0_STM32_S() 
     { 
         setupAdcPa0Fast();  // executa setup automaticamente
+        calcularValorNuloAdc(); // calcula valor nulo automaticamente
     }
 
     static uint16_t leituraAdc_()
@@ -29,12 +29,15 @@ private:
         return ADC1->DR;
     }
 
-public:
-    // 🔹 Método para obter a única instância
-    static FastADC_PA0_STM32_S& getInstance()
+    void calcularValorNuloAdc(uint16_t totalLeituras = 100)
     {
-        static FastADC_PA0_STM32_S instance;
-        return instance;
+        uint32_t soma = 0;
+        for (uint16_t i = 0; i < totalLeituras; i++)
+        {
+            soma += leituraAdc_();
+            delay(1);
+        }
+        valorNuloAdc_ = (float)soma / (float)totalLeituras;
     }
 
     void setupAdcPa0Fast(void)
@@ -54,6 +57,14 @@ public:
         while (ADC1->CR2 & ADC_CR2_CAL);
     }
 
+public:
+    // 🔹 Método para obter a única instância
+    static FastADC_PA0_STM32_S& getInstance()
+    {
+        static FastADC_PA0_STM32_S instance;
+        return instance;
+    }
+
     static void leituraSincronizadaPWM(void)
     {
         static uint8_t indiceCircular_ = 0;
@@ -65,49 +76,20 @@ public:
         indiceCircular_ = (indiceCircular_ + 1) % dimensaoAmostrasMediaMovel_;
     }
 
-    float obterGrandezaMedia(void)
+    uint16_t obterGrandezaMedia(void)
     {
         uint32_t soma = 0;
         for (uint8_t i = 0; i < dimensaoAmostrasMediaMovel_; i++)
             soma += vetorADC_[i];
 
-        float media = (float)soma / (float)dimensaoAmostrasMediaMovel_;
-        media = (media - (float)valorNuloAdc_) * kAjuste_;
+        uint16_t media = soma / dimensaoAmostrasMediaMovel_;
+        media = media - valorNuloAdc_; // Remove valor nulo
         return media;
     }
 
     uint16_t obterValorNuloAdc(void) { return valorNuloAdc_; }
-
-    void calcularValorNuloAdc(uint16_t totalLeituras = 100)
-    {
-        uint32_t soma = 0;
-        for (uint16_t i = 0; i < totalLeituras; i++)
-        {
-            soma += leituraAdc_();
-            delay(1);
-        }
-        valorNuloAdc_ = (float)soma / (float)totalLeituras;
-    }
-
-    void definirKValorReal(float kAjuste = 1.7e-3f) { kAjuste_ = kAjuste; }
-
-    float obterKValorReal(void) { return kAjuste_; }
-
-    float obterGrandezaMediaPeriodica(uint16_t intervaloMs = 500)
-    {
-        static unsigned long ultimoUpdate_ = 0;  
-        static float ultimaMedia_ = 0.0f;         
-
-        unsigned long agora = millis();
-        if (agora - ultimoUpdate_ >= intervaloMs)
-        {
-            ultimaMedia_ = obterGrandezaMedia();
-            ultimoUpdate_ = agora;
-        }
-        return ultimaMedia_;
-    }
+    void recalibrarValorNuloAdc(uint16_t totalLeituras = 100) { calcularValorNuloAdc(totalLeituras); }
 };
 
-float FastADC_PA0_STM32_S::kAjuste_ = 1.7e-3f; // Valor real = Valor lido * kAjuste
 uint16_t FastADC_PA0_STM32_S::vetorADC_[dimensaoAmostrasMediaMovel_] = {0};
 uint16_t FastADC_PA0_STM32_S::valorNuloAdc_ = 0;
