@@ -18,6 +18,7 @@
 #include "ConfigFlash.h"
 #include "Motor.h"
 #include "Portao.h"
+#include "Protecao.h"
 
 
 HardwareSerial Serial2(PA3, PA2); // RX, TX
@@ -47,7 +48,6 @@ Variavel<uint8_t> dPWMParada("dPWMParada", 10, 0, 100, 1, true);
 Variavel<float> acelPWM("acelPWM", 1.0f, 0.1f, 100.0, 0.1f, true);
 Variavel<float> adjADC("adjADC", 1.7e-3f, 0.1e-3f, 10.0e-3f, 0.1e-3f, true);
 Variavel<float> iMedio("iMedio", 0.0f, 0.0f, 20.0f, 0.0f, false);
-Variavel<float> iProt("iProt", 5.0f, 1.0f, 20.0f, 0.1f, true);
 // Variáveis para portão
 Variavel<String> posicaoPortao("posPortao", "", false);
 Variavel<String> operacaoPortao("operPortao", "", false);
@@ -55,11 +55,17 @@ Variavel<float> rampaPWMPosicao("rampaPWMPos", 2.0f, 0.1f, 20.0f, 0.1f, true);
 // Variáveis para salvar e carregar configuração
 Variavel<bool> salvarConfigFlash("salvarConfigFlash", false, false);
 Variavel<bool> carregarConfigFlash("carregarConfigFlash", false, false);
+// Variáveis para proteção
+Variavel<bool> protecaoEncoderParadoAtuada("protEncParado", false, false);
+Variavel<bool> protecaoSobrecorrenteAtuada("protSobrecorrente", false, false);
+Variavel<float> iProt("iProt", 5.0f, 1.0f, 20.0f, 0.1f, true);
 
 EncoderSTM32 encAB(encPos, encMax, encRev, PA12, PA15, true, false, false);
 
 ModosOperacao modoNormal("Normal");
 ModosOperacao modoMonitorGeral("Monitor geral");
+ModosOperacao modoProtEncParado("Prot. Encoder Parado");
+ModosOperacao modoProtSobrecorrente("Prot. Sobrecorrente");
 ModosOperacao modoEncAtivo("Encoder ativo");
 ModosOperacao modoEncMaximo("Encoder maximo");
 ModosOperacao modoEncReverso("Encoder reverso");
@@ -76,6 +82,8 @@ String trocarTela = "Tela P+A >> e P+F <<";
 String incDecBool = "Valor: BtA=1 e BtF=0";
 String incDecNum = "Valor: BtA=+ e BtF=-";
 MensagemLCD mNormal(&modoNormal, "$modo$", "D=$dPWM$ Pos=$encPos$", "PP=$posPortao$ OP=$operPortao$ EA=$encAtivo$", trocarTela);
+MensagemLCD mProtEncParado(&modoProtEncParado, "$modo$", "ativada = $protEncParado$", "(atua se Enc Ativo)", trocarTela);
+MensagemLCD mProtSobrecorrente(&modoProtSobrecorrente, "$modo$", "ativada = $protSobrecorrente$", " ", trocarTela);
 MensagemLCD mMonitorGeral(&modoMonitorGeral, "$modo$", "Pos=$encPos$/$encMax$ Rev=$encRev$", " ", trocarTela);
 MensagemLCD mAtivarEnc(&modoEncAtivo, "$modo$", "$encAtivo$", incDecBool, trocarTela);
 MensagemLCD mEncMaximo(&modoEncMaximo, "$modo$", "$encMax$", incDecNum, trocarTela);
@@ -94,6 +102,8 @@ auto& pwm = PWM_PB1_STM32_S::getInstance(freqPWM, dPWM, dPWMMax, acelPWM, FastAD
 
 Motor motor(PB11, PB10, pwm, adc, iMedio, adjADC); // pino KD, KE, PWM
 Portao portao(fcS, fcI, encAB, motor, encAtivo, encPosPartida0a100, encPosParada0a100, dPWMPartida, dPWMParada, rampaPWMPosicao);
+
+Protecao protecao(portao, iProt, protecaoEncoderParadoAtuada, protecaoSobrecorrenteAtuada);
 
 // Trocar modo
 ChavesCombinadas APF_N({&btnA, &btnP, &btnF}, {true, true, true}); // Vai para modo normal
@@ -174,37 +184,3 @@ AcoesChavesCombinadas acCarregarConfigFlash(ApF_MCF, &modoCarregarConfigFlash, [
 
 
 
-
-
-// Ações no modo normal
-///AcoesChaves avancarModo(btnP, btnA, btnF, true, true, false, nullptr, [](uint8_t){ ModosOperacao::modoSeguinte(); }, 2000, true, 50000, 1, 60000, 1); 
-///AcoesChaves voltarModo(btnP, btnA, btnF, true, false, true, nullptr, [](uint8_t){ ModosOperacao::modoAnterior(); }, 2000, true, 50000, 1, 60000, 1); 
-///AcoesChaves abrirPortao(btnA, btnP, btnF, true, false, false, &modoNormal, [](uint8_t v){ portao.abrir(); }, 1000, false);
-///AcoesChaves fecharPortao(btnF, btnP, btnA, true, false, false, &modoNormal, [](uint8_t v){ portao.fechar(); }, 1000, false);
-///AcoesChaves pararPortao(btnP, btnA, btnF, true, false, false, &modoNormal, [](uint8_t v){ portao.parar(); }, 50, false);
-///AcoesChaves acelerarAbrirPortao(btnA, btnF, btnP, true, false, false, &modoNormal, [](uint8_t v){ portao.abrirFecharAceleradoSemEncoder(); }, 2000, false);
-///AcoesChaves acelerarFecharPortao(btnA, btnF, btnP, false, true, false, &modoNormal, [](uint8_t v){ portao.abrirFecharAceleradoSemEncoder(); }, 2000, false);
-///AcoesChaves desacelerarPortao(btnF, btnA, btnP, true, true, false, &modoNormal, [](uint8_t v){ portao.abrirFecharDesaceleradoSemEncoder(); }, 2000, false);
-///AcoesChaves velocidadeNormalPortao(btnP, btnF, btnA, false, false, false, &modoNormal, [](uint8_t v){ portao.velocidadeNormalSemEncoder(); }, 500, false);
-// Ativar e destivar encoder e ajustar parametros
-///AcoesChaves ativarEnc(btnA, btnP, btnF, true, false, false, &modoEncAtivo, [](uint8_t v){ encAtivo.incrementar(v); }, 500, false);
-///AcoesChaves desativarEnc(btnF, btnP, btnA, true, false, false, &modoEncAtivo, [](uint8_t v){ encAtivo.decrementar(v); }, 500, false);
-///AcoesChaves incEncMax(btnA, btnP, btnF, true, false, false, &modoEncMaximo, [](uint8_t v){ encMax.incrementar(v); }, 500, true, 5000, 10, 10000, 100);
-///AcoesChaves decEncMax(btnF, btnP, btnA, true, false, false, &modoEncMaximo, [](uint8_t v){ encMax.decrementar(v); }, 500, true, 5000, 10, 10000, 100);
-///AcoesChaves encoderReverso(btnA, btnP, btnF, true, false, false, &modoEncReverso, [](uint8_t v){ encRev.incrementar(v); }, 500, false);
-///AcoesChaves encoderDireto(btnF, btnP, btnA, true, false, false, &modoEncReverso, [](uint8_t v){ encRev.decrementar(v); }, 500, true, 5000, 10, 10000, 100);
-// Ajustar parametros do motor (PWM e ADC)
-///AcoesChaves incFreqPWM(btnA, btnP, btnF, true, false, false, &modoFreqPWM, [](uint8_t v){ freqPWM.incrementar(v); }, 500, true, 5000, 10, 10000, 100);
-///AcoesChaves decFreqPWM(btnF, btnP, btnA, true, false, false, &modoFreqPWM, [](uint8_t v){ freqPWM.decrementar(v); }, 500, true, 5000, 10, 10000, 100);
-///AcoesChaves incDPWM(btnA, btnP, btnF, true, false, false, &modoDPWM, [](uint8_t v){ dPWMMax.incrementar(v); }, 500, true, 5000, 10, 10000, 100);
-///AcoesChaves decDPWM(btnF, btnP, btnA, true, false, false, &modoDPWM, [](uint8_t v){ dPWMMax.decrementar(v); }, 500, true, 5000, 10, 10000, 100);
-///AcoesChaves incAcelPWM(btnA, btnP, btnF, true, false, false, &modoAcelPWM, [](uint8_t v){ acelPWM.incrementar(v); }, 500, true, 5000, 10, 10000, 100);
-///AcoesChaves decAcelPWM(btnF, btnP, btnA, true, false, false, &modoAcelPWM, [](uint8_t v){ acelPWM.decrementar(v); }, 500, true, 5000, 10, 10000, 100);
-///AcoesChaves incAdjADC(btnA, btnP, btnF, true, false, false, &modoConstanteADC, [](uint8_t v){ adjADC.incrementar(v); }, 500, true, 5000, 10, 10000, 100);
-///AcoesChaves decAdjADC(btnF, btnP, btnA, true, false, false, &modoConstanteADC, [](uint8_t v){ adjADC.decrementar(v); }, 500, true, 5000, 10, 10000, 100);
-// Ajustar corrente de proteção 
-///AcoesChaves incCorrenteProtecao(btnA, btnP, btnF, true, false, false, &modoCorrenteProtecao, [](uint8_t v){ iProt.incrementar(v); }, 500, true, 5000, 10, 10000, 100);
-///AcoesChaves decCorrenteProtecao(btnF, btnP, btnA, true, false, false, &modoCorrenteProtecao, [](uint8_t v){ iProt.decrementar(v); }, 500, true, 5000, 10, 10000, 100);
-// Salvar e carregar configuração na flash
-///AcoesChaves acSalvarConfigFlash(btnF, btnP, btnA, true, true, true, &modoSalvarConfigFlash, [](uint8_t v){ salvarConfigFlash.incrementar(v); }, 5000, false);
-///AcoesChaves acCarregarConfigFlash(btnF, btnP, btnA, true, true, true, &modoCarregarConfigFlash, [](uint8_t v){ carregarConfigFlash.incrementar(v); }, 5000, false);

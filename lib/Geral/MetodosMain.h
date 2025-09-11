@@ -18,6 +18,7 @@
 #include "ConfigFlash.h"
 #include "Motor.h"
 #include "Portao.h"
+#include "Protecao.h"
 
 #include "ObjetosMain.h"
 

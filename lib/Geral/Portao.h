@@ -3,7 +3,7 @@
 #include <Arduino.h>
 #include "Motor.h"
 #include "Variavel.h"
-#include "ChaveSTM32.h"
+#include "IChave.h"
 #include "EncoderSTM32.h"
 #include "PWM_PB1_STM32_S.h"
 
@@ -14,8 +14,8 @@ public:
     enum class Operacao { Nenhuma, AbrirComEncoder, FecharComEncoder, AbrirSemEncoder, FecharSemEncoder, Parar };
 
 private:
-    ChaveSTM32& fcS_;
-    ChaveSTM32& fcI_;
+    IChave& fcS_;
+    IChave& fcI_;
     EncoderSTM32& encAB_;
     Motor& motor_;
     Variavel<bool>& encAtivo_;
@@ -133,7 +133,7 @@ private:
     }
 
 public:
-    Portao(ChaveSTM32& fcS, ChaveSTM32& fcI, EncoderSTM32& encAB, Motor& motor, Variavel<bool>& encAtivo,
+    Portao(IChave& fcS, IChave& fcI, EncoderSTM32& encAB, Motor& motor, Variavel<bool>& encAtivo,
             Variavel<uint8_t>& encPosPartida0a100, Variavel<uint8_t>& encPosParada0a100, 
             Variavel<uint8_t>& dPWMPartida, Variavel<uint8_t>& dPWMParada, Variavel<float>& rampaPWMPosicao)
         : fcS_(fcS), fcI_(fcI), encAB_(encAB), motor_(motor), encAtivo_(encAtivo), 
@@ -144,6 +144,9 @@ public:
 
     Posicao obterPosicao() const { return posicaoAtual_; }
 
+    EncoderSTM32& obterEncoder() { return encAB_; }
+    Motor& obterMotor() { return motor_; }
+    
     void abrir()
     {
         if (posicaoAtual_ == Posicao::Fechado || posicaoAtual_ == Posicao::Intermediario)
@@ -231,6 +234,20 @@ public:
     Posicao obterPosicaoAtual()
     {
         return posicaoAtual_;
+    }
+
+    void protecaoEncoderParado()
+    {
+        if (encAtivo_.obterValor())
+        {
+            if (operacaoAtual_==Operacao::AbrirComEncoder || operacaoAtual_==Operacao::FecharComEncoder)
+                operacaoAtual_ = Operacao::Parar;
+        }
+    }
+
+    void protecaoSobrecorrente()
+    {
+        operacaoAtual_ = Operacao::Parar;
     }
 
     void monitorar()

@@ -1,262 +1,49 @@
 #pragma once
 
 #include <Arduino.h>
-#include "Motor.h"
+#include <functional>
 #include "Variavel.h"
-#include "ChaveSTM32.h"
-#include "EncoderSTM32.h"
-#include "PWM_PB1_STM32_S.h"
+#include "Portao.h"
 
 class Protecao
 {
-public:
-    enum class Posicao { Fechado, Aberto, Intermediario, Erro };
-    enum class Operacao { Nenhuma, AbrirComEncoder, FecharComEncoder, AbrirSemEncoder, FecharSemEncoder, Parar };
-
 private:
-    ChaveSTM32& fcS_;
-    ChaveSTM32& fcI_;
-    EncoderSTM32& encAB_;
-    Motor& motor_;
-    Variavel<bool>& encAtivo_;
-    Variavel<uint8_t>& encPosPartida0a100_;
-    Variavel<uint8_t>& encPosParada0a100_;
-    Variavel<uint8_t>& dPWMPartida_;
-    Variavel<uint8_t>& dPWMParada_;
-    Variavel<float>& rampaPWMPosicao_; // dPwm por porcentagem da posicao do encoder
-    float multiplicadorPWM_; // Acelerar o motor nos modos sem encoder
-    Posicao posicaoAtual_;
-    Operacao operacaoAtual_;
-
-    // Métodos privados para cada tipo de operação
-    uint8_t dPWMComEncoder(uint8_t pos0a100)
-    {
-        float dPWM = 0;
-        uint8_t posStart = encPosPartida0a100_.obterValor();
-        uint8_t posStop = encPosParada0a100_.obterValor();
-        uint8_t pwmStart = dPWMPartida_.obterValor();
-        uint8_t pwmStop = dPWMParada_.obterValor();
-        if (pos0a100 < posStart)
-            dPWM = (float)pwmStart;
-        else if (pos0a100 > posStop)
-            dPWM = (float)pwmStop;
-        else
-        {
-            float pwm_pos50 = (float)pwmStart + (50 - posStart) * rampaPWMPosicao_.obterValor();
-            if (pos0a100 < 50)
-                dPWM = (float)pwmStart + (float)(pos0a100 - posStart) * rampaPWMPosicao_.obterValor();
-            else
-                dPWM = (float)pwm_pos50 - (float)(pos0a100 - 50) * rampaPWMPosicao_.obterValor();
-            
-            if (dPWM > 100) dPWM = 100; else if (dPWM < 0) dPWM = 0;
-        }
-        return (uint8_t)dPWM;
-    }
-
-    void abrirComEncoder()
-    {
-        if (fcI_.estaAtiva()) //motor_.obterEstadoAtual() != Motor::Estado::Horario && 
-            encAB_.zerarPosicao();
-        if (encAB_.obterPosicao() < (int32_t)encAB_.obterPosicaoMaximaAbs()) 
-        {
-            int8_t pos = encAB_.obterPosicao_N100aP100();
-            uint8_t dPWM = dPWMComEncoder(pos);
-            motor_.mover(Motor::Estado::Horario, dPWM);
-        }
-        else
-            operacaoAtual_ = Operacao::Parar;
-    }
-
-    void fecharComEncoder()
-    {
-        if (fcS_.estaAtiva()) // motor_.obterEstadoAtual() != Motor::Estado::Antihorario && 
-            encAB_.setarPosicao();
-        if (encAB_.obterPosicao() > 0) 
-        {
-            int8_t pos = encAB_.obterPosicao_N100aP100();
-            if (operacaoAtual_ == Operacao::FecharComEncoder)
-                pos = 100 - encAB_.obterPosicao_N100aP100();
-            uint8_t dPWM = dPWMComEncoder(pos);
-            motor_.mover(Motor::Estado::Antihorario, dPWM);
-        }
-        else
-            operacaoAtual_ = Operacao::Parar;
-    }
-
-    void abrirSemEncoder()
-    {
-        float dPWM = (float)dPWMPartida_.obterValor() * multiplicadorPWM_;
-        motor_.mover(Motor::Estado::Horario, (uint8_t)dPWM);
-    }
-
-    void fecharSemEncoder()
-    {
-        float dPWM = (float)dPWMPartida_.obterValor() * multiplicadorPWM_;
-        motor_.mover(Motor::Estado::Antihorario, (uint8_t)dPWM);
-    }
-
-    void desligarMotor()
-    {
-        motor_.desligar();
-        operacaoAtual_ = Operacao::Nenhuma;
-    }
-
-    void atualizarPosicao()
-    {
-        bool fcs = fcS_.estaAtiva();
-        bool fci = fcI_.estaAtiva();
-
-        if (fcs && !fci) 
-            posicaoAtual_ = Posicao::Aberto;
-        else if (!fcs && fci) 
-            posicaoAtual_ = Posicao::Fechado;
-        else if (!fcs && !fci) 
-            posicaoAtual_ = Posicao::Intermediario;
-        else 
-            posicaoAtual_ = Posicao::Erro;
-
-    }
-
-    void atualizarOperacao()
-    {
-        bool fcs = fcS_.estaAtiva();
-        bool fci = fcI_.estaAtiva();
-
-        if ( (operacaoAtual_==Operacao::AbrirComEncoder || 
-              operacaoAtual_==Operacao::AbrirSemEncoder) && fcs) 
-            operacaoAtual_ = Operacao::Parar;
-        else if ( (operacaoAtual_==Operacao::FecharComEncoder || 
-                   operacaoAtual_==Operacao::FecharSemEncoder) && fci) 
-            operacaoAtual_ = Operacao::Parar;
-        else if (posicaoAtual_ == Posicao::Erro)
-            operacaoAtual_ = Operacao::Parar;
-    }
+    Portao& portao_;
+    Variavel<float>& iProtecao_;
+    Variavel<bool>& protecaoEncoderParadoAtuada_;
+    Variavel<bool>& protecaoSobrecorrenteAtuada_;
 
 public:
-    Portao(ChaveSTM32& fcS, ChaveSTM32& fcI, EncoderSTM32& encAB, Motor& motor, Variavel<bool>& encAtivo,
-            Variavel<uint8_t>& encPosPartida0a100, Variavel<uint8_t>& encPosParada0a100, 
-            Variavel<uint8_t>& dPWMPartida, Variavel<uint8_t>& dPWMParada, Variavel<float>& rampaPWMPosicao)
-        : fcS_(fcS), fcI_(fcI), encAB_(encAB), motor_(motor), encAtivo_(encAtivo), 
-          encPosPartida0a100_(encPosPartida0a100), encPosParada0a100_(encPosParada0a100),
-          dPWMPartida_(dPWMPartida), dPWMParada_(dPWMParada), rampaPWMPosicao_(rampaPWMPosicao), multiplicadorPWM_(1),
-          posicaoAtual_(Posicao::Intermediario), operacaoAtual_(Operacao::Nenhuma)
-        {}
-
-    Posicao obterPosicao() const { return posicaoAtual_; }
-
-    void abrir()
+    Protecao(Portao& portao, 
+             Variavel<float>& iProtecao,
+             Variavel<bool>& protecaoEncoderParadoAtuada,
+             Variavel<bool>& protecaoSobrecorrenteAtuada)
+        : portao_(portao), iProtecao_(iProtecao),
+          protecaoEncoderParadoAtuada_(protecaoEncoderParadoAtuada),
+          protecaoSobrecorrenteAtuada_(protecaoSobrecorrenteAtuada)
     {
-        if (posicaoAtual_ == Posicao::Fechado || posicaoAtual_ == Posicao::Intermediario)
-        {
-            if (encAtivo_.obterValor())
-                operacaoAtual_ = Operacao::AbrirComEncoder;
-            else
-                operacaoAtual_ = Operacao::AbrirSemEncoder;
-        }
-        else
-            operacaoAtual_ = Operacao::Parar;
+        protecaoEncoderParadoAtuada_.definirValor(false);
+        protecaoSobrecorrenteAtuada_.definirValor(false);
     }
 
-    void fechar()
-    {
-        if (posicaoAtual_ == Posicao::Aberto || posicaoAtual_ == Posicao::Intermediario)
-        {
-            if (encAtivo_.obterValor())
-                operacaoAtual_ = Operacao::FecharComEncoder;
-            else
-                operacaoAtual_ = Operacao::FecharSemEncoder;
-        }
-        else
-            operacaoAtual_ = Operacao::Parar;
-    }
-
-    void parar()
-    {
-        operacaoAtual_ = Operacao::Parar;
-    }
-
-    void abrirFecharAceleradoSemEncoder()
-    {
-        if (operacaoAtual_==Operacao::AbrirSemEncoder || operacaoAtual_==Operacao::FecharSemEncoder )
-            multiplicadorPWM_ = 3;
-    }
-
-    void abrirFecharDesaceleradoSemEncoder()
-    {
-        if (operacaoAtual_==Operacao::AbrirSemEncoder || operacaoAtual_==Operacao::FecharSemEncoder )
-            multiplicadorPWM_ = 0.5;
-    }
-
-    void velocidadeNormalSemEncoder()
-    {
-        multiplicadorPWM_ = 1;
-    }
-
-    float obterMultiplicadorSemEncoder()
-    {
-        return multiplicadorPWM_;
-    }
-
-    String obterOperacaoAtualString()
-    {
-        switch (operacaoAtual_)
-        {
-            case Operacao::Nenhuma: return "N.";
-            case Operacao::AbrirComEncoder: return "AC";
-            case Operacao::FecharComEncoder: return "FC";
-            case Operacao::AbrirSemEncoder: return "AS";
-            case Operacao::FecharSemEncoder: return "FS";
-            case Operacao::Parar: return "P.";
-            default: return "O?";
-        }
-    }
-
-    Operacao obterOperacaoAtual()
-    {
-        return operacaoAtual_;
-    }
-
-    String obterPosicaoAtualString()
-    {
-        switch (posicaoAtual_)
-        {
-            case Posicao::Fechado: return "Fc";
-            case Posicao::Aberto: return "Ab";
-            case Posicao::Intermediario: return "I.";
-            case Posicao::Erro: return "E.";
-            default: return "P?";
-        }
-    }
-
-    Posicao obterPosicaoAtual()
-    {
-        return posicaoAtual_;
-    }
+    void liberarProtecaoEncoderParado() { protecaoEncoderParadoAtuada_.definirValor(false); }
+    void liberarProtecaoSobrecorrente() { protecaoSobrecorrenteAtuada_.definirValor(false); }
+    bool protecaoEncoderParadoAtuada() const { return protecaoEncoderParadoAtuada_.obterValor(); }
+    bool protecaoSobrecorrenteAtuada() const { return protecaoSobrecorrenteAtuada_.obterValor(); }
 
     void monitorar()
     {
-        atualizarPosicao();
-        atualizarOperacao();
-        switch (operacaoAtual_)
+        // Proteção por sobrecorrente
+        if (portao_.obterMotor().obterImedio() >= iProtecao_.obterValor())
         {
-            case Operacao::Parar:
-                desligarMotor();
-                break;
-            case Operacao::AbrirComEncoder:
-                abrirComEncoder();
-                break;
-            case Operacao::FecharComEncoder:
-                fecharComEncoder();
-                break;
-            case Operacao::AbrirSemEncoder:
-                abrirSemEncoder();
-                break;
-            case Operacao::FecharSemEncoder:
-                fecharSemEncoder();
-                break;
-            case Operacao::Nenhuma:
-                desligarMotor();
-                break;
+            portao_.protecaoSobrecorrente();
+            protecaoSobrecorrenteAtuada_.definirValor(true);
+        }
+        // Proteção por encoder parado
+        if (portao_.obterEncoder().estaParado())
+        {
+            portao_.protecaoEncoderParado();
+            protecaoEncoderParadoAtuada_.definirValor(true);
         }
     }
 };

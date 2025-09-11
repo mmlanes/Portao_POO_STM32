@@ -15,6 +15,7 @@
 #include "ConfigFlash.h"
 #include "Motor.h"
 #include "Portao.h"
+#include "Protecao.h"
 
 
 // Arquivos para deixar o conteúdo de main.cpp menor
@@ -40,11 +41,13 @@ void loop()
     dPWM.definirValor(pwm.obterDpwmAtual());                    // Atualiza Variavel<uint8_t> dPWM
     posicaoPortao.definirValor(portao.obterPosicaoAtualString()); // Atualiza Variavel<uint8_t> posPortao
     operacaoPortao.definirValor(portao.obterOperacaoAtualString());// Atualiza Variavel<uint8_t> operPortao
+    
     // Ações essenciais do sistema
     ChaveSTM32::atualizarTodas();                               // Atualiza todas as chaves
     motor.monitorar();                                          // Atualiza o estado do motor
     pwm.atualizaRampa();                                        // Atualiza a rampa de PWM
     portao.monitorar();                                         // Atualiza o portão
+    protecao.monitorar();                                       // Monitora as proteções
 
     //AcoesChaves::atuarTodas(ModosOperacao::modoAtual());        // Atualiza as ações das chaves
     AcoesChavesCombinadas::atuarTodas(ModosOperacao::obterModoAtual());
