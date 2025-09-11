@@ -16,7 +16,7 @@ public:
         : chaves_(chaves), estadosDesejados_(estadosDesejados)
     {
         if (chaves_.size() != estadosDesejados_.size())
-            Serial.println("Erro: número de chaves e estados não coincide!");
+            Serial2.println("Erro: número de chaves e estados não coincide!");
     }
 
     /// Verifica se todas as chaves estão no estado esperado

@@ -18,7 +18,7 @@ private:
     bool initTardio; // Inicialização tardia do LCD
     uint8_t scanI2C(void)
     {
-        serial.println("Escaneando I2C...");
+        //serial.println("Escaneando I2C...");
         uint8_t foundAddress = 0;
         
         for (uint8_t address = 1; address < 127; address++) 
@@ -27,7 +27,7 @@ private:
             if (Wire.endTransmission() == 0) 
             {
                 foundAddress = address;
-                serial.println("LCD encontrado: 0x" + String(address, HEX));
+                //serial.println("LCD encontrado: 0x" + String(address, HEX));
                 break; // Retorna o primeiro endereço encontrado
             }
         }
