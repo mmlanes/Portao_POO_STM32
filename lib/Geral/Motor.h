@@ -14,8 +14,8 @@ private:
     uint8_t pinKE_;
     PWM_PB1_STM32_S& pwm_;
     FastADC_PA0_STM32_S& adc_;
-    Variavel<float>& kAjuste_;
     Variavel<float>& Imedio_;
+    Variavel<float>& kAjuste_;
     uint16_t tempoEsperaRele_;
     uint16_t tempoAtualizacaoAutomaticaImedioMs_;
     uint8_t dpwmAlvo_;
@@ -163,7 +163,7 @@ public:
     void atualizacaoPeriodicaImedio(uint16_t intervaloMs)
     {
         static unsigned long ultimoUpdate_ = 0;  
-        static float ultimaMedia_ = 0.0f;         
+        //static float ultimaMedia_ = 0.0f;         
 
         if (intervaloMs == 0)
             return;

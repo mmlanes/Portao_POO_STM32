@@ -145,7 +145,8 @@ GerenciadorAcoes gerenciador;
 IChave* chaves3[3] = { &btnA, &btnP, &btnF };
 
 // -------------------------- CONFIGURAÇÃO DAS AÇÕES --------------------------
-void configurarAcoes() {
+void configurarAcoes() 
+{
     // Modos gerais
     gerenciador.adicionarAcao({ {chaves3[0], chaves3[1], chaves3[2]}, 0b111, nullptr, acaoIrModoNormal, 2000, true });
     gerenciador.adicionarAcao({ {chaves3[0], chaves3[1], chaves3[2]}, 0b110, nullptr, acaoAvancarModo, 2000, true });
