@@ -1,3 +1,12 @@
+// Fechar (dobrar) o bloco de código atual:
+// Ctrl + Shift + [
+// Abrir (expandir) o bloco de código atual:
+// Ctrl + Shift + ]
+// Fechar (dobrar) todos os blocos de código:
+// Ctrl + K, Ctrl + 0
+// Abrir (expandir) todos os blocos de código:
+// Ctrl + K, Ctrl + J
+
 #pragma once
 #include <Arduino.h>
 #include "Variavel.h"
@@ -41,6 +50,25 @@ private:
     }
 
 public:
+     // Deleta cópia e atribuição
+    PWM_PB1_STM32_S(const PWM_PB1_STM32_S&) = delete;
+    PWM_PB1_STM32_S& operator=(const PWM_PB1_STM32_S&) = delete;
+
+    // Função pública para obter a instância
+    static PWM_PB1_STM32_S& getInstance(Variavel<uint16_t>& freqHz, 
+                                        Variavel<uint8_t>& dpwmAtual, 
+                                        Variavel<uint8_t>& dpwmMaximo, 
+                                        Variavel<float>& aceleracao, 
+                                        void (*staticLerAdcA0)(void) = nullptr)
+    {
+        static PWM_PB1_STM32_S instance(freqHz, dpwmAtual, dpwmMaximo, aceleracao, staticLerAdcA0);
+        return instance;
+    }
+
+    // // Chamadas posteriores: usa instância existente
+    static PWM_PB1_STM32_S& getInstance() { return *instance_; }
+    // Métodos de controle do PWM (não estáticos agora)
+ 
     // Método para definir a frequência
     void defineFrequencia(uint32_t freqHz_100a10k)
     {
@@ -118,24 +146,6 @@ public:
         definirDpwmImediato(0);
     }
 
-    // Deleta cópia e atribuição
-    PWM_PB1_STM32_S(const PWM_PB1_STM32_S&) = delete;
-    PWM_PB1_STM32_S& operator=(const PWM_PB1_STM32_S&) = delete;
-
-    // Função pública para obter a instância
-    static PWM_PB1_STM32_S& getInstance(Variavel<uint16_t>& freqHz, 
-                                        Variavel<uint8_t>& dpwmAtual, 
-                                        Variavel<uint8_t>& dpwmMaximo, 
-                                        Variavel<float>& aceleracao, 
-                                        void (*staticLerAdcA0)(void) = nullptr)
-    {
-        static PWM_PB1_STM32_S instance(freqHz, dpwmAtual, dpwmMaximo, aceleracao, staticLerAdcA0);
-        return instance;
-    }
-
-    // // Chamadas posteriores: usa instância existente
-    static PWM_PB1_STM32_S& getInstance() { return *instance_; }
-    // Métodos de controle do PWM (não estáticos agora)
     void definirDpwmImediato(uint8_t d0a100)
     {
         if (d0a100 > dpwmMaximo_.obterValor()) 
