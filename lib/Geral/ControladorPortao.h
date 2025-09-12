@@ -3,7 +3,7 @@
 #include <Arduino.h>
 #include "Motor.h"
 #include "Variavel.h"
-#include "Portao2.h"
+#include "Portao.h"
 #include "Protecao.h"
 
 class ControladorPortao
@@ -12,7 +12,7 @@ public:
     enum class Operacao { Nenhuma, AbrirComEncoder, FecharComEncoder, AbrirSemEncoder, FecharSemEncoder, Parar };
 
 private:
-    Portao2 portao_;
+    Portao portao_;
     Protecao protecao_;
     Operacao operacaoAtual_;
 
@@ -102,23 +102,24 @@ private:
         else if ( (operacaoAtual_==Operacao::FecharComEncoder || 
                    operacaoAtual_==Operacao::FecharSemEncoder) && fci) 
             operacaoAtual_ = Operacao::Parar;
-        else if (portao_.posicaoAtual_ == Portao2::Posicao::Erro)
+        else if (portao_.posicaoAtual_ == Portao::Posicao::Erro)
             operacaoAtual_ = Operacao::Parar;
     }
 
 public:
-    ControladorPortao(Portao2 portao, Protecao protecao)
+    ControladorPortao(Portao portao, Protecao protecao)
         : portao_(portao), protecao_(protecao), operacaoAtual_(Operacao::Nenhuma)
         {}
   
     void abrir()
     {
-        if (portao_.posicaoAtual_ == Portao2::Posicao::Fechado || 
-            portao_.posicaoAtual_ == Portao2::Posicao::Intermediario)
+        if (portao_.posicaoAtual_ == Portao::Posicao::Fechado || 
+            portao_.posicaoAtual_ == Portao::Posicao::Intermediario)
         {
             if (portao_.encAtivo_.obterValor())
             {
                 protecao_.liberarProtecaoEncoderParado();
+                protecao_.liberarProtecaoSobrecorrente();
                 portao_.encAB_.resetParado();
                 operacaoAtual_ = Operacao::AbrirComEncoder;
             }
@@ -131,12 +132,13 @@ public:
 
     void fechar()
     {
-        if (portao_.posicaoAtual_ == Portao2::Posicao::Aberto || 
-            portao_.posicaoAtual_ == Portao2::Posicao::Intermediario)
+        if (portao_.posicaoAtual_ == Portao::Posicao::Aberto || 
+            portao_.posicaoAtual_ == Portao::Posicao::Intermediario)
         {
             if (portao_.encAtivo_.obterValor())
             {
                 protecao_.liberarProtecaoEncoderParado();
+                protecao_.liberarProtecaoSobrecorrente();
                 portao_.encAB_.resetParado();
                 operacaoAtual_ = Operacao::FecharComEncoder;
             }

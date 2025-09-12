@@ -17,7 +17,7 @@
 #include "MensagemLCD.h"
 #include "ConfigFlash.h"
 #include "Motor.h"
-#include "Portao2.h"
+#include "Portao.h"
 #include "ControladorPortao.h"
 #include "Protecao.h"
 
@@ -57,16 +57,20 @@ Variavel<float> rampaPWMPosicao("rampaPWMPos", 2.0f, 0.1f, 20.0f, 0.1f, true);
 Variavel<bool> salvarConfigFlash("salvarConfigFlash", false, false);
 Variavel<bool> carregarConfigFlash("carregarConfigFlash", false, false);
 // Variáveis para proteção
-Variavel<bool> protecaoEncoderParadoAtuada("protEncParado", false, false);
-Variavel<bool> protecaoSobrecorrenteAtuada("protSobrecorrente", false, false);
+Variavel<bool> protecaoEncoderParadoAtuada("protEncParadoAtuada", false, false);
+Variavel<bool> protecaoSobrecorrenteAtuada("protSobrecorrenteAtuada", false, false);
+Variavel<bool> protecaoEncoderParado("usarProtEncParado", true, true);
+Variavel<bool> protecaoSobrecorrente("usarProtSobrecorrente", true, true);
 Variavel<float> iProt("iProt", 5.0f, 1.0f, 20.0f, 0.1f, true);
 
 EncoderSTM32 encAB(encPos, encMax, encRev, PA12, PA15, true, false, false);
 
 ModosOperacao modoNormal("Normal");
 ModosOperacao modoMonitorGeral("Monitor geral");
-ModosOperacao modoProtEncParado("Prot. Encoder Parado");
-ModosOperacao modoProtSobrecorrente("Prot. Sobrecorrente");
+ModosOperacao modoProtEncParadoAtuado("Prot. EncPar Atuada");
+ModosOperacao modoProtSobrecorrenteAtuado("Prot. Imax");
+ModosOperacao modoUsarProtEncParado("Usar Prot. EncPar. ?");
+ModosOperacao modoUsarProtSobrecorrente("Usar Prot. Imax ?");
 ModosOperacao modoEncAtivo("Encoder ativo");
 ModosOperacao modoEncMaximo("Encoder maximo");
 ModosOperacao modoEncReverso("Encoder reverso");
@@ -82,9 +86,12 @@ ModosOperacao modoCarregarConfigFlash("Carrega config Flash");
 String trocarTela = "Tela P+A >> e P+F <<";
 String incDecBool = "Valor: BtA=1 e BtF=0";
 String incDecNum = "Valor: BtA=+ e BtF=-";
-MensagemLCD mNormal(&modoNormal, "$modo$", "D=$dPWM$ AB=$encPos$ PEI=$protEncParado$$protSobrecorrente$", "PP=$posPortao$ OP=$operPortao$ EA=$encAtivo$", trocarTela);
-MensagemLCD mProtEncParado(&modoProtEncParado, "$modo$", "ativada = $protEncParado$", "(atua se Enc Ativo)", trocarTela);
-MensagemLCD mProtSobrecorrente(&modoProtSobrecorrente, "$modo$", "ativada = $protSobrecorrente$", " ", trocarTela);
+MensagemLCD mNormal(&modoNormal, "$modo$ Im=$iMedio$A", "D=$dPWM$ AB=$encPos$ PEI=$protEncParadoAtuada$$protSobrecorrenteAtuada$", "PP=$posPortao$ OP=$operPortao$ EA=$encAtivo$", trocarTela);
+//MensagemLCD mNormal(&modoNormal, "$modo$", "D=$dPWM$ AB=$encPos$ Im=$iMedio$A", "PP.OP.RA.PEI=$posPortao$.$operPortao$.$encAtivo$.$protEncParado$$protSobrecorrente$", trocarTela);
+MensagemLCD mProtEncParado(&modoProtEncParadoAtuado, "$modo$", "ativada = $protEncParadoAtuada$", "(atua se Enc Ativo)", trocarTela);
+MensagemLCD mProtSobrecorrente(&modoProtSobrecorrenteAtuado, "$modo$", "ativada = $protSobrecorrenteAtuada$", " ", trocarTela);
+MensagemLCD mUsarProtEncParado(&modoUsarProtEncParado, "$modo$", "usar = $usarProtEncParado$", " ", trocarTela);
+MensagemLCD mUsarProtSobrecorrente(&modoUsarProtSobrecorrente, "$modo$", "usar = $usarProtSobrecorrente$", " ", trocarTela);
 MensagemLCD mMonitorGeral(&modoMonitorGeral, "$modo$", "Pos=$encPos$/$encMax$ Rev=$encRev$", " ", trocarTela);
 MensagemLCD mAtivarEnc(&modoEncAtivo, "$modo$", "$encAtivo$", incDecBool, trocarTela);
 MensagemLCD mEncMaximo(&modoEncMaximo, "$modo$", "$encMax$", incDecNum, trocarTela);
@@ -102,8 +109,10 @@ auto& adc = FastADC_PA0_STM32_S::getInstance();
 auto& pwm = PWM_PB1_STM32_S::getInstance(freqPWM, dPWM, dPWMMax, acelPWM, FastADC_PA0_STM32_S::leituraSincronizadaPWM); // 5000 Hz e função de leitura do ADC
 
 Motor motor(PB11, PB10, pwm, adc, iMedio, adjADC); // pino KD, KE, PWM
-Portao2 portao(fcS, fcI, encAB, motor, encAtivo, encPosPartida0a100, encPosParada0a100, dPWMPartida, dPWMParada, rampaPWMPosicao);
-Protecao protecao(portao, iProt, protecaoEncoderParadoAtuada, protecaoSobrecorrenteAtuada);
+Portao portao(fcS, fcI, encAB, motor, encAtivo, encPosPartida0a100, encPosParada0a100, dPWMPartida, dPWMParada, rampaPWMPosicao);
+Protecao protecao(portao, iProt, 
+                  protecaoEncoderParadoAtuada, protecaoSobrecorrenteAtuada,
+                  protecaoEncoderParado, protecaoSobrecorrente);
 ControladorPortao controladorPortao(portao, protecao);
 
 // Trocar modo
@@ -120,16 +129,26 @@ ChavesCombinadas apF_MN({&btnA, &btnP, &btnF}, {false, false, true}); // fecharP
 AcoesChavesCombinadas fecharPortao(apF_MN, &modoNormal, [](uint8_t v){ controladorPortao.fechar(); }, 1000, false);
 ChavesCombinadas aPf_MN({&btnA, &btnP, &btnF}, {false, true, false}); // pararPortao
 AcoesChavesCombinadas pararPortao(aPf_MN, &modoNormal, [](uint8_t v){ controladorPortao.parar(); }, 50, false);
-// Ativar/desativar protecao por encoder parado
+// Ativar/desativar FLAG ATUADO protecao por encoder parado
 ChavesCombinadas Apf_MPEP({&btnA, &btnP, &btnF}, {true, false, false}); // ativarProtEnc
-AcoesChavesCombinadas ativarProtEncP(Apf_MPEP, &modoProtEncParado, [](uint8_t v){ protecaoEncoderParadoAtuada.incrementar(v); }, 500, false);
+AcoesChavesCombinadas ativarFlagProtEncP(Apf_MPEP, &modoProtEncParadoAtuado, [](uint8_t v){ protecaoEncoderParadoAtuada.incrementar(v); }, 500, false);
 ChavesCombinadas apF_MPEP({&btnA, &btnP, &btnF}, {false, false, true}); // desativarProtEnc
-AcoesChavesCombinadas desativarProtEncP(apF_MPEP, &modoProtEncParado, [](uint8_t v){ protecaoEncoderParadoAtuada.decrementar(v); }, 500, false);
-// Ativar/desativar protecao por sobrecorrente
+AcoesChavesCombinadas desativarFlagProtEncP(apF_MPEP, &modoProtEncParadoAtuado, [](uint8_t v){ protecaoEncoderParadoAtuada.decrementar(v); }, 500, false);
+// Ativar/desativar FLAG ATUADO protecao por sobrecorrente
 ChavesCombinadas Apf_MPS({&btnA, &btnP, &btnF}, {true, false, false}); // ativarProtSobrecorrente
-AcoesChavesCombinadas ativarProtSobrecorrente(Apf_MPS, &modoProtSobrecorrente, [](uint8_t v){ protecaoSobrecorrenteAtuada.incrementar(v); }, 500, false);
+AcoesChavesCombinadas ativarFlagProtSobrecorrente(Apf_MPS, &modoProtSobrecorrenteAtuado, [](uint8_t v){ protecaoSobrecorrenteAtuada.incrementar(v); }, 500, false);
 ChavesCombinadas apF_MPS({&btnA, &btnP, &btnF}, {false, false, true}); // desativarProtSobrecorrente
-AcoesChavesCombinadas desativarProtSobrecorrente(apF_MPS, &modoProtSobrecorrente, [](uint8_t v){ protecaoSobrecorrenteAtuada.decrementar(v); }, 500, false);
+AcoesChavesCombinadas desativarFlagProtSobrecorrente(apF_MPS, &modoProtSobrecorrenteAtuado, [](uint8_t v){ protecaoSobrecorrenteAtuada.decrementar(v); }, 500, false);
+// Ativar/desativar PROTECAO por encoder parado
+ChavesCombinadas Apf_MUPEP({&btnA, &btnP, &btnF}, {true, false, false}); // ativarProtEnc
+AcoesChavesCombinadas ativarProtEncP(Apf_MUPEP, &modoUsarProtEncParado, [](uint8_t v){ protecaoEncoderParado.incrementar(v); }, 500, false);
+ChavesCombinadas apF_MUPEP({&btnA, &btnP, &btnF}, {false, false, true}); // desativarProtEnc
+AcoesChavesCombinadas desativarProtEncP(apF_MUPEP, &modoUsarProtEncParado, [](uint8_t v){ protecaoEncoderParado.decrementar(v); }, 500, false);
+// Ativar/desativar PROTECAO por sobrecorrente
+ChavesCombinadas Apf_MUPS({&btnA, &btnP, &btnF}, {true, false, false}); // ativarProtSobrecorrente
+AcoesChavesCombinadas ativarProtSobrecorrente(Apf_MUPS, &modoUsarProtSobrecorrente, [](uint8_t v){ protecaoSobrecorrente.incrementar(v); }, 500, false);
+ChavesCombinadas apF_MUPS({&btnA, &btnP, &btnF}, {false, false, true}); // desativarProtSobrecorrente
+AcoesChavesCombinadas desativarProtSobrecorrente(apF_MUPS, &modoUsarProtSobrecorrente, [](uint8_t v){ protecaoSobrecorrente.decrementar(v); }, 500, false);
 // Modo normal: acelerado
 ChavesCombinadas Apf_MN_Ac({&btnA, &btnP, &btnF}, {true, false, false}); // acelerarAbrirPortao
 AcoesChavesCombinadas acelerarAbrirPortao(Apf_MN_Ac, &modoNormal, [](uint8_t v){ controladorPortao.abrirFecharAceleradoSemEncoder(); }, 2000, false);
