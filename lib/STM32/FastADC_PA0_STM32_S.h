@@ -38,6 +38,7 @@ private:
             delay(1);
         }
         valorNuloAdc_ = (float)soma / (float)totalLeituras;
+        Serial2.println("Valor nulo ADC recalibrado: " + String(valorNuloAdc_));
     }
 
     void setupAdcPa0Fast(void)
@@ -76,12 +77,11 @@ public:
         indiceCircular_ = (indiceCircular_ + 1) % dimensaoAmostrasMediaMovel_;
     }
 
-    uint16_t obterGrandezaMedia(void)
+    int16_t obterGrandezaMedia(void)
     {
         uint32_t soma = 0;
         for (uint8_t i = 0; i < dimensaoAmostrasMediaMovel_; i++)
             soma += vetorADC_[i];
-
         uint16_t media = soma / dimensaoAmostrasMediaMovel_;
         media = media - valorNuloAdc_; // Remove valor nulo
         return media;

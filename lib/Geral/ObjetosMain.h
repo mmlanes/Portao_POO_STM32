@@ -17,7 +17,8 @@
 #include "MensagemLCD.h"
 #include "ConfigFlash.h"
 #include "Motor.h"
-#include "Portao.h"
+#include "Portao2.h"
+#include "ControladorPortao.h"
 #include "Protecao.h"
 
 
@@ -81,7 +82,7 @@ ModosOperacao modoCarregarConfigFlash("Carrega config Flash");
 String trocarTela = "Tela P+A >> e P+F <<";
 String incDecBool = "Valor: BtA=1 e BtF=0";
 String incDecNum = "Valor: BtA=+ e BtF=-";
-MensagemLCD mNormal(&modoNormal, "$modo$", "D=$dPWM$ Pos=$encPos$", "PP=$posPortao$ OP=$operPortao$ EA=$encAtivo$", trocarTela);
+MensagemLCD mNormal(&modoNormal, "$modo$", "D=$dPWM$ AB=$encPos$ PEI=$protEncParado$$protSobrecorrente$", "PP=$posPortao$ OP=$operPortao$ EA=$encAtivo$", trocarTela);
 MensagemLCD mProtEncParado(&modoProtEncParado, "$modo$", "ativada = $protEncParado$", "(atua se Enc Ativo)", trocarTela);
 MensagemLCD mProtSobrecorrente(&modoProtSobrecorrente, "$modo$", "ativada = $protSobrecorrente$", " ", trocarTela);
 MensagemLCD mMonitorGeral(&modoMonitorGeral, "$modo$", "Pos=$encPos$/$encMax$ Rev=$encRev$", " ", trocarTela);
@@ -101,36 +102,44 @@ auto& adc = FastADC_PA0_STM32_S::getInstance();
 auto& pwm = PWM_PB1_STM32_S::getInstance(freqPWM, dPWM, dPWMMax, acelPWM, FastADC_PA0_STM32_S::leituraSincronizadaPWM); // 5000 Hz e função de leitura do ADC
 
 Motor motor(PB11, PB10, pwm, adc, iMedio, adjADC); // pino KD, KE, PWM
-Portao portao(fcS, fcI, encAB, motor, encAtivo, encPosPartida0a100, encPosParada0a100, dPWMPartida, dPWMParada, rampaPWMPosicao);
-
+Portao2 portao(fcS, fcI, encAB, motor, encAtivo, encPosPartida0a100, encPosParada0a100, dPWMPartida, dPWMParada, rampaPWMPosicao);
 Protecao protecao(portao, iProt, protecaoEncoderParadoAtuada, protecaoSobrecorrenteAtuada);
+ControladorPortao controladorPortao(portao, protecao);
 
 // Trocar modo
 ChavesCombinadas APF_N({&btnA, &btnP, &btnF}, {true, true, true}); // Vai para modo normal
 AcoesChavesCombinadas irModoNormal(APF_N, nullptr, [](uint8_t){ ModosOperacao::definirModoAtualPorPosicao(0); }, 2000, true, 50000, 1, 60000, 1); 
 ChavesCombinadas APf_N({&btnA, &btnP, &btnF}, {true, true, false}); // Avançar modo
-AcoesChavesCombinadas avancarModo(APf_N, nullptr, [](uint8_t){ ModosOperacao::modoSeguinte(); }, 2000, true, 50000, 1, 60000, 1); 
+AcoesChavesCombinadas avancarModo(APf_N, nullptr, [](uint8_t){ ModosOperacao::modoSeguinte(); }, 1000, true, 50000, 1, 60000, 1); 
 ChavesCombinadas aPF_N({&btnA, &btnP, &btnF}, {false, true, true}); // Voltar modo
-AcoesChavesCombinadas voltarModo(aPF_N, nullptr, [](uint8_t){ ModosOperacao::modoAnterior(); }, 2000, true, 50000, 1, 60000, 1); 
+AcoesChavesCombinadas voltarModo(aPF_N, nullptr, [](uint8_t){ ModosOperacao::modoAnterior(); }, 1000, true, 50000, 1, 60000, 1); 
 // Modo normal
 ChavesCombinadas Apf_MN({&btnA, &btnP, &btnF}, {true, false, false}); // abrirPortao
-AcoesChavesCombinadas abrirPortao(Apf_MN, &modoNormal, [](uint8_t v){ portao.abrir(); }, 1000, false);
+AcoesChavesCombinadas abrirPortao(Apf_MN, &modoNormal, [](uint8_t v){ controladorPortao.abrir(); }, 1000, false);
 ChavesCombinadas apF_MN({&btnA, &btnP, &btnF}, {false, false, true}); // fecharPortao
-AcoesChavesCombinadas fecharPortao(apF_MN, &modoNormal, [](uint8_t v){ portao.fechar(); }, 1000, false);
+AcoesChavesCombinadas fecharPortao(apF_MN, &modoNormal, [](uint8_t v){ controladorPortao.fechar(); }, 1000, false);
 ChavesCombinadas aPf_MN({&btnA, &btnP, &btnF}, {false, true, false}); // pararPortao
-AcoesChavesCombinadas pararPortao(aPf_MN, &modoNormal, [](uint8_t v){ portao.parar(); }, 50, false);
+AcoesChavesCombinadas pararPortao(aPf_MN, &modoNormal, [](uint8_t v){ controladorPortao.parar(); }, 50, false);
+// Ativar/desativar protecao por encoder parado
+ChavesCombinadas Apf_MPEP({&btnA, &btnP, &btnF}, {true, false, false}); // ativarProtEnc
+AcoesChavesCombinadas ativarProtEncP(Apf_MPEP, &modoProtEncParado, [](uint8_t v){ protecaoEncoderParadoAtuada.incrementar(v); }, 500, false);
+ChavesCombinadas apF_MPEP({&btnA, &btnP, &btnF}, {false, false, true}); // desativarProtEnc
+AcoesChavesCombinadas desativarProtEncP(apF_MPEP, &modoProtEncParado, [](uint8_t v){ protecaoEncoderParadoAtuada.decrementar(v); }, 500, false);
+// Ativar/desativar protecao por sobrecorrente
+ChavesCombinadas Apf_MPS({&btnA, &btnP, &btnF}, {true, false, false}); // ativarProtSobrecorrente
+AcoesChavesCombinadas ativarProtSobrecorrente(Apf_MPS, &modoProtSobrecorrente, [](uint8_t v){ protecaoSobrecorrenteAtuada.incrementar(v); }, 500, false);
+ChavesCombinadas apF_MPS({&btnA, &btnP, &btnF}, {false, false, true}); // desativarProtSobrecorrente
+AcoesChavesCombinadas desativarProtSobrecorrente(apF_MPS, &modoProtSobrecorrente, [](uint8_t v){ protecaoSobrecorrenteAtuada.decrementar(v); }, 500, false);
 // Modo normal: acelerado
 ChavesCombinadas Apf_MN_Ac({&btnA, &btnP, &btnF}, {true, false, false}); // acelerarAbrirPortao
-AcoesChavesCombinadas acelerarAbrirPortao(Apf_MN_Ac, &modoNormal, [](uint8_t v){ portao.abrirFecharAceleradoSemEncoder(); }, 2000, false);
+AcoesChavesCombinadas acelerarAbrirPortao(Apf_MN_Ac, &modoNormal, [](uint8_t v){ controladorPortao.abrirFecharAceleradoSemEncoder(); }, 2000, false);
 ChavesCombinadas apF_MN_Ac({&btnA, &btnP, &btnF}, {false, false, true}); // acelerarFecharPortao
-AcoesChavesCombinadas acelerarFecharPortao(apF_MN_Ac, &modoNormal, [](uint8_t v){ portao.abrirFecharAceleradoSemEncoder(); }, 2000, false);
+AcoesChavesCombinadas acelerarFecharPortao(apF_MN_Ac, &modoNormal, [](uint8_t v){ controladorPortao.abrirFecharAceleradoSemEncoder(); }, 2000, false);
 // Modo normal: desacelerado
 ChavesCombinadas ApF_MN_Des({&btnA, &btnP, &btnF}, {true, false, true}); // desacelerarPortao
-AcoesChavesCombinadas desacelerarPortao(ApF_MN_Des, &modoNormal, [](uint8_t v){ portao.abrirFecharDesaceleradoSemEncoder(); }, 2000, false);
-//ChavesCombinadas aPF_MN_Des({&btnA, &btnP, &btnF}, {false, true, true}); // desacelerarFecharPortao
-//AcoesChavesCombinadas desacelerarFecharPortao(aPF_MN_Des, &modoNormal, [](uint8_t v){ portao.abrirFecharDesaceleradoSemEncoder(); }, 2000, false);
+AcoesChavesCombinadas desacelerarPortao(ApF_MN_Des, &modoNormal, [](uint8_t v){ controladorPortao.abrirFecharDesaceleradoSemEncoder(); }, 2000, false);
 ChavesCombinadas apf_MN({&btnA, &btnP, &btnF}, {false, false, false}); // velocidadeNormalPortao
-AcoesChavesCombinadas velocidadeNormalPortao(apf_MN, &modoNormal, [](uint8_t v){ portao.velocidadeNormalSemEncoder(); }, 500, false);
+AcoesChavesCombinadas velocidadeNormalPortao(apf_MN, &modoNormal, [](uint8_t v){ controladorPortao.velocidadeNormalSemEncoder(); }, 500, false);
 // Modo EncoderAtivo
 ChavesCombinadas Apf_MEA({&btnA, &btnP, &btnF}, {true, false, false}); // ativarEnc
 AcoesChavesCombinadas ativarEnc(Apf_MEA, &modoEncAtivo, [](uint8_t v){ encAtivo.incrementar(v); }, 500, false);

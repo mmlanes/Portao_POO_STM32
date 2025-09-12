@@ -17,8 +17,9 @@
 #include "MensagemLCD.h"
 #include "ConfigFlash.h"
 #include "Motor.h"
-#include "Portao.h"
+#include "Portao2.h"
 #include "Protecao.h"
+#include "ControladorPortao.h"
 
 #include "ObjetosMain.h"
 

@@ -14,8 +14,9 @@
 #include "MensagemLCD.h"
 #include "ConfigFlash.h"
 #include "Motor.h"
-#include "Portao.h"
+#include "Portao2.h"
 #include "Protecao.h"
+#include "ControladorPortao.h"
 
 
 // Arquivos para deixar o conteúdo de main.cpp menor
@@ -40,7 +41,7 @@ void loop()
     // Atualização de variáveis para visualização e controle
     dPWM.definirValor(pwm.obterDpwmAtual());                    // Atualiza Variavel<uint8_t> dPWM
     posicaoPortao.definirValor(portao.obterPosicaoAtualString()); // Atualiza Variavel<uint8_t> posPortao
-    operacaoPortao.definirValor(portao.obterOperacaoAtualString());// Atualiza Variavel<uint8_t> operPortao
+    operacaoPortao.definirValor(controladorPortao.obterOperacaoAtualString());// Atualiza Variavel<uint8_t> operPortao
     
     // Ações essenciais do sistema
     ChaveSTM32::atualizarTodas();                               // Atualiza todas as chaves
@@ -48,6 +49,7 @@ void loop()
     pwm.atualizaRampa();                                        // Atualiza a rampa de PWM
     portao.monitorar();                                         // Atualiza o portão
     protecao.monitorar();                                       // Monitora as proteções
+    controladorPortao.monitorar();                              // Monitora o controlador do portão
 
     //AcoesChaves::atuarTodas(ModosOperacao::modoAtual());        // Atualiza as ações das chaves
     AcoesChavesCombinadas::atuarTodas(ModosOperacao::obterModoAtual());

@@ -3,18 +3,18 @@
 #include <Arduino.h>
 #include <functional>
 #include "Variavel.h"
-#include "Portao.h"
+#include "Portao2.h"
 
 class Protecao
 {
 private:
-    Portao& portao_;
+    Portao2& portao_;
     Variavel<float>& iProtecao_;
     Variavel<bool>& protecaoEncoderParadoAtuada_;
     Variavel<bool>& protecaoSobrecorrenteAtuada_;
 
 public:
-    Protecao(Portao& portao, 
+    Protecao(Portao2& portao, 
              Variavel<float>& iProtecao,
              Variavel<bool>& protecaoEncoderParadoAtuada,
              Variavel<bool>& protecaoSobrecorrenteAtuada)
@@ -34,16 +34,12 @@ public:
     void monitorar()
     {
         // Proteção por sobrecorrente
-        if (portao_.obterMotor().obterImedio() >= iProtecao_.obterValor())
-        {
-            portao_.protecaoSobrecorrente();
+        if (portao_.obterMotor().obterUltimoImedio() >= iProtecao_.obterValor())
             protecaoSobrecorrenteAtuada_.definirValor(true);
-        }
         // Proteção por encoder parado
         if (portao_.obterEncoder().estaParado())
-        {
-            portao_.protecaoEncoderParado();
             protecaoEncoderParadoAtuada_.definirValor(true);
-        }
+        else
+           protecaoEncoderParadoAtuada_.definirValor(false);
     }
 };

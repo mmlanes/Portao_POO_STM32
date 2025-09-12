@@ -153,9 +153,18 @@ public:
 
     float obterkADCAjusteValorReal(void) { return kAjuste_.obterValor(); }
 
-    float obterImedio(void)
+    float obterUltimoImedio(void)
     {
-        float Im = (float)adc_.obterGrandezaMedia() * kAjuste_.obterValor();
+        return Imedio_.obterValor();
+    }
+
+    float obterImedio(float valorMinino = 0.1f)
+    {
+        int16_t MediaADC = adc_.obterGrandezaMedia();
+        float Im = (float)MediaADC * kAjuste_.obterValor();
+        //Serial2.println("MediaADC=" + String(MediaADC) + " kAjuste=" + String(kAjuste_.obterValor()) + " Imedio=" + String(Im));
+        if (Im > -valorMinino && Im < valorMinino) 
+            Im = 0.0f;  
         Imedio_.definirValor(Im);
         return Im;
     }
@@ -172,6 +181,7 @@ public:
         if (agora - ultimoUpdate_ >= intervaloMs)
         {
             obterImedio();
+            //Serial2.println("Imedio atualizado: " + String(Imedio_.obterValor()) + " A");
             ultimoUpdate_ = agora;
         }
     }
@@ -179,7 +189,8 @@ public:
     void monitorar()
     {
         atualizarPwmZero();
-        atualizacaoPeriodicaImedio(tempoAtualizacaoAutomaticaImedioMs_);
+        //atualizacaoPeriodicaImedio(tempoAtualizacaoAutomaticaImedioMs_);
+        atualizacaoPeriodicaImedio(3000);
 
          // Transições de estado
         if (estadoAtual_ == Estado::Parando && estadoAlvo_ == Estado::Parado )

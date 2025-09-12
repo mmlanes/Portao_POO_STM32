@@ -15,6 +15,7 @@ private:
     Variavel<uint32_t>& posicaoMaxima_;
 
     // Para verificação de movimento
+    bool parado_;
     int32_t ultimaPosicao_;
     uint32_t ultimoTempo_;
 
@@ -44,7 +45,7 @@ public:
                  bool pinA_is_Isr = true, bool pinB_is_Isr = false, bool contagemReversa = false)
         : pinA_(pinA), pinB_(pinB), pinA_is_Isr_(pinA_is_Isr), pinB_is_Isr_(pinB_is_Isr),
           reverso_(rev), posicao_(pos), posicaoMaxima_(max),
-          ultimaPosicao_(0), ultimoTempo_(0)
+          parado_(false), ultimaPosicao_(0), ultimoTempo_(millis())
     {
         pinMode(pinA_, INPUT_PULLUP);
         pinMode(pinB_, INPUT_PULLUP);
@@ -92,22 +93,35 @@ public:
     void definirSentidoEncoder(bool reverso = false) { reverso_.definirValor(reverso); }
     bool obterSentidoEncoder(void) { return reverso_.obterValor(); }
 
+    void resetParado()
+    {
+        ultimaPosicao_ = posicao_.obterValor();
+        ultimoTempo_ = millis();
+        parado_ = false;
+    }
     /// 🔹 Novo método: verifica se o encoder está parado
-    bool estaParado(int32_t delta = 50, uint32_t intervaloMs = 3000)
+    bool estaParado(bool reset = false, int32_t delta = 50, uint32_t intervaloMs = 3000)
     {
         uint32_t agora = millis();
-        if (agora - ultimoTempo_ >= intervaloMs)
+        int32_t posAtual = posicao_.obterValor();
+        uint32_t deltaT = agora - ultimoTempo_;
+        int32_t deltaP = abs(posAtual - ultimaPosicao_);
+        if (reset)
         {
-            int32_t posAtual = posicao_.obterValor();
-            int32_t diferenca = abs(posAtual - ultimaPosicao_);
-
-            // Atualiza referência
             ultimaPosicao_ = posAtual;
             ultimoTempo_ = agora;
-
-            // Se não se moveu mais que delta → parado
-            return (diferenca < delta);
+            parado_ = false;
         }
-        return false; // ainda não passou tempo suficiente
+        if (deltaT >= intervaloMs && parado_==false)
+        {
+            ultimaPosicao_ = posAtual;
+            ultimoTempo_ = agora;
+            if (deltaP < delta)
+                parado_ = true;
+        }
+        else if (deltaP > delta)
+            parado_ = false;
+
+        return parado_; 
     }
 };
