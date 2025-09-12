@@ -46,7 +46,7 @@ void loop()
     // Ações essenciais do sistema
     ChaveSTM32::atualizarTodas();                               // Atualiza todas as chaves
     motor.monitorar();                                          // Atualiza o estado do motor
-    pwm.atualizaRampa();                                        // Atualiza a rampa de PWM
+    pwm.monitorar();                                        // Atualiza a rampa de PWM
     portao.monitorar();                                         // Atualiza o portão
     protecao.monitorar();                                       // Monitora as proteções
     controladorPortao.monitorar();                              // Monitora o controlador do portão

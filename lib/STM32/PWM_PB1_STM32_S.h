@@ -20,18 +20,50 @@ private:
         if (instance_ && instance_->lerAdcA0_)
             instance_->lerAdcA0_();
     }
-    void setupPwmUpDown(uint32_t freqHz_100a10k, void (*staticLerAdcA0)(void) = nullptr)
+
+    // Construtor privado
+    PWM_PB1_STM32_S(Variavel<uint16_t>& freqHz, 
+                    Variavel<uint8_t>& dpwmAtual,
+                    Variavel<uint8_t>& dpwmMaximo, 
+                    Variavel<float>& aceleracao, 
+                    void (*staticLerAdcA0)(void) = nullptr)
+        :   freqHz_(freqHz), 
+            dpwmAtual_(dpwmAtual), 
+            dpwmMaximo_(dpwmMaximo),
+            aceleracao_(aceleracao), 
+            lerAdcA0_(staticLerAdcA0), 
+            dpwmAlvo_(0), 
+            tempoInicioRampa_(millis()), 
+            timer3_(nullptr)
     {
+        instance_ = this;
+        defineFrequencia(freqHz.obterValor());
+    }
+
+public:
+    // Método para definir a frequência
+    void defineFrequencia(uint32_t freqHz_100a10k)
+    {
+        static uint16_t lastFreq = 0;
+
+        if (freqHz_100a10k == lastFreq)
+            return; // Mesma frequência, nada a fazer
+        
         // Limites de frequência
         if (freqHz_100a10k < 100 || freqHz_100a10k > 10000)
             return; // Frequência fora do intervalo permitido
-
+        if (freqHz_100a10k == lastFreq)
+            return; // Mesma frequência, nada a fazer
+        lastFreq = freqHz_100a10k;
+        Serial2.println("Definindo freq: " + String(freqHz_100a10k));
         freqHz_.definirValor(freqHz_100a10k);
+        
         if (!timer3_) 
+        {
             timer3_ = new HardwareTimer(TIM3);
-
-        timer3_->attachInterrupt(1, isrTim3_);
-        timer3_->resume();
+            timer3_->attachInterrupt(1, isrTim3_);
+            timer3_->resume();
+        }
 
         float d0a100 = 0;
         RCC->APB2ENR |= RCC_APB2ENR_IOPBEN;
@@ -86,26 +118,6 @@ private:
         definirDpwmImediato(0);
     }
 
-    // Construtor privado
-    PWM_PB1_STM32_S(Variavel<uint16_t>& freqHz, 
-                    Variavel<uint8_t>& dpwmAtual,
-                    Variavel<uint8_t>& dpwmMaximo, 
-                    Variavel<float>& aceleracao, 
-                    void (*staticLerAdcA0)(void) = nullptr)
-        :   freqHz_(freqHz), 
-            dpwmAtual_(dpwmAtual), 
-            dpwmMaximo_(dpwmMaximo),
-            aceleracao_(aceleracao), 
-            lerAdcA0_(staticLerAdcA0), 
-            dpwmAlvo_(0), 
-            tempoInicioRampa_(millis()), 
-            timer3_(nullptr)
-    {
-        instance_ = this;
-        setupPwmUpDown(freqHz.obterValor(), staticLerAdcA0);
-    }
-
-public:
     // Deleta cópia e atribuição
     PWM_PB1_STM32_S(const PWM_PB1_STM32_S&) = delete;
     PWM_PB1_STM32_S& operator=(const PWM_PB1_STM32_S&) = delete;
@@ -194,6 +206,12 @@ public:
         definirDpwmImediato(dpwmAtual_.obterValor());
     }
 
+    void monitorar(void)
+    {
+        // Chamar periodicamente em loop()
+        atualizaRampa();
+        defineFrequencia(freqHz_.obterValor());
+    }
 };
 
 PWM_PB1_STM32_S* PWM_PB1_STM32_S::instance_ = nullptr;

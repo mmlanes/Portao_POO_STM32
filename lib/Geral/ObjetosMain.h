@@ -115,6 +115,9 @@ Protecao protecao(portao, iProt,
                   protecaoEncoderParado, protecaoSobrecorrente);
 ControladorPortao controladorPortao(portao, protecao);
 
+// Para em qualquer modo com btnP
+ChavesCombinadas aPf_N({&btnA, &btnP, &btnF}, {false, true, false}); // pararPortao
+AcoesChavesCombinadas pararPortaoN(aPf_N, nullptr, [](uint8_t v){ controladorPortao.parar(); }, 500, false);
 // Trocar modo
 ChavesCombinadas APF_N({&btnA, &btnP, &btnF}, {true, true, true}); // Vai para modo normal
 AcoesChavesCombinadas irModoNormal(APF_N, nullptr, [](uint8_t){ ModosOperacao::definirModoAtualPorPosicao(0); }, 2000, true, 50000, 1, 60000, 1); 
