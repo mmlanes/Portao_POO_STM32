@@ -1,69 +1,113 @@
 #pragma once
 
 #include <Arduino.h>
-#include "Variavel.h"
+#include <vector>
 
 class FastADC_PA0_STM32_S2
 {
 private:
-    static const uint8_t dimensaoAmostrasMediaMovel_ = 100;
-    static uint16_t vetorADC_[dimensaoAmostrasMediaMovel_];
+    static std::vector<uint16_t> bufferLeituras_;               // Buffer principal
+    static std::vector<uint16_t> bufferCircularCiclosLeituras_; // Buffer circular
+    static uint8_t dimensaoBufferCircular_;
+    static uint8_t posicaoBufferCircular_;
+    static uint32_t periodoAmostragemUs_;
+    static uint16_t periodoTotalUs_;
+    static uint16_t capacidadeBuffer_;
     static uint16_t valorNuloAdc_;
-    HardwareTimer* timer2_;
+    static bool bufferCheio_;
+    static uint16_t valorMedio_;
+    static uint16_t valorMaximo_;
+    static HardwareTimer* timer2_;
+    static FastADC_PA0_STM32_S2* instance_;
 
-    FastADC_PA0_STM32_S2() 
-    { 
-        setupAdcPa0Fast();  // executa setup automaticamente
-        calcularValorNuloAdc(); // calcula valor nulo automaticamente
-        configuraTimer();
+    // Construtor privado
+    FastADC_PA0_STM32_S2(uint32_t periodoAmostragemUs, uint16_t periodoTotalUs, uint8_t dimensaoBufferCircular)
+    {
+        periodoAmostragemUs_ = periodoAmostragemUs;
+        periodoTotalUs_ = periodoTotalUs;
+        dimensaoBufferCircular_ = dimensaoBufferCircular;
+        posicaoBufferCircular_ = 0;
+
+        capacidadeBuffer_ = periodoTotalUs_ / periodoAmostragemUs_;
+        bufferLeituras_.reserve(capacidadeBuffer_);
+        bufferCircularCiclosLeituras_.resize(dimensaoBufferCircular_);
+
+        instance_ = this;
+
+        setupAdcPa0Fast();
+        calcularValorNuloAdc();
+        configuraTimer(periodoAmostragemUs_);
+        anexarInterrupcao();
     }
 
-    void configuraTimer(uint32_t periodoUs)
+    // Configuração de timer
+    static void configuraTimer(uint32_t periodoUs)
     {
         if (!timer2_)
         {
-            // Cria o objeto para TIM2
             timer2_ = new HardwareTimer(TIM2);
-            // Define a frequência ou o período
-            timer2_->setOverflow(periodoUs, MICROSEC_FORMAT);  
-            // Anexa a ISR
-            //timer2_->attachInterrupt(isrTim2);
-            // Inicia o timer
+            timer2_->setOverflow(periodoUs, MICROSEC_FORMAT);
             timer2_->resume();
         }
     }
 
-    void anexarInterrupcao()
+    static void anexarInterrupcao()
     {
         if (timer2_)
             timer2_->attachInterrupt(isrTim2);
     }
 
-    void desanexarInterrupcao()
+    static void desanexarInterrupcao()
     {
         if (timer2_)
             timer2_->detachInterrupt();
     }
 
-    static void isrTim2() 
+    // ISR: leitura do ADC + atualização buffer circular e cálculo médio/máximo
+    static void isrTim2()
     {
-        digitalToggle(LED_BUILTIN);
+        uint16_t leitura = leituraAdc_();
+
+        // Armazena no buffer principal
+        if (bufferLeituras_.size() < capacidadeBuffer_)
+        {
+            bufferLeituras_.push_back(leitura);
+        }
+        else
+        {
+            bufferCheio_ = true;
+        }
+
+        // Buffer circular
+        bufferCircularCiclosLeituras_[posicaoBufferCircular_] = leitura;
+        posicaoBufferCircular_ = (posicaoBufferCircular_ + 1) % dimensaoBufferCircular_;
+
+        // Recalcula média e máximo do buffer circular
+        uint32_t soma = 0;
+        uint16_t maximo = 0;
+        for (uint8_t i = 0; i < dimensaoBufferCircular_; i++)
+        {
+            uint16_t val = bufferCircularCiclosLeituras_[i];
+            soma += val;
+            if (val > maximo)
+                maximo = val;
+        }
+        valorMedio_ = soma / dimensaoBufferCircular_;
+        valorMaximo_ = maximo;
     }
 
     static uint16_t leituraAdc_()
     {
         ADC1->CR2 &= ~ADC_CR2_CONT;
         ADC1->CR2 &= ~ADC_CR2_EXTTRIG;
-
         ADC1->SQR3 = 0;
         ADC1->CR2 |= ADC_CR2_ADON;
         ADC1->CR2 |= ADC_CR2_ADON;
         while (!(ADC1->SR & ADC_SR_EOC));
-
         return ADC1->DR;
     }
 
-    void calcularValorNuloAdc(uint16_t totalLeituras = 100)
+    static void calcularValorNuloAdc(uint16_t totalLeituras = 100)
     {
         uint32_t soma = 0;
         for (uint16_t i = 0; i < totalLeituras; i++)
@@ -71,87 +115,62 @@ private:
             soma += leituraAdc_();
             delay(1);
         }
-        valorNuloAdc_ = (float)soma / (float)totalLeituras;
+        valorNuloAdc_ = (uint16_t)(soma / totalLeituras);
         Serial2.println("Valor nulo ADC recalibrado: " + String(valorNuloAdc_));
     }
 
-    void setupAdcPa0Fast(void)
+    static void setupAdcPa0Fast()
     {
-        pinMode(PA0, INPUT_ANALOG);  // Configura PA0 como entrada analógica
-        RCC->APB2ENR |= RCC_APB2ENR_ADC1EN;  // Habilita clock do ADC1
-        // Reseta ADC e prepara
+        pinMode(PA0, INPUT_ANALOG);
+        RCC->APB2ENR |= RCC_APB2ENR_ADC1EN;
         ADC1->CR2 = 0;
         ADC1->SQR3 = 0;
-        // Liga ADC
         ADC1->CR2 |= ADC_CR2_ADON;
-        delay(1);  // Espera estabilizar
-        // Calibração recomendada
+        delay(1);
         ADC1->CR2 |= ADC_CR2_RSTCAL;
         while (ADC1->CR2 & ADC_CR2_RSTCAL);
         ADC1->CR2 |= ADC_CR2_CAL;
         while (ADC1->CR2 & ADC_CR2_CAL);
     }
 
-    void leituraADCBuferizada(uint32_t periodoAmostragemUs, uint16_t periodoTotalUs)
-    {
-        static const uint8_t totalAmostras = 100;
-        static uint16_t bufferLeituras[totalAmostras] = {0};
-        static uint8_t indiceBuffer = 0;
-
-        // Leitura ADC
-        uint16_t leitura = leituraAdc_();
-        // Desloca todos os elementos do vetor para a esquerda
-        for (uint8_t i = 1; i < dimensaoAmostrasMediaMovel_; i++)
-            vetorADC_[i - 1] = vetorADC_[i];
-        // Adiciona a nova leitura no final do vetor
-        vetorADC_[dimensaoAmostrasMediaMovel_ - 1] = leitura;
-    }
 public:
-    // Deleta cópia e atribuição
     FastADC_PA0_STM32_S2(const FastADC_PA0_STM32_S2&) = delete;
     FastADC_PA0_STM32_S2& operator=(const FastADC_PA0_STM32_S2&) = delete;
-        // 🔹 Método para obter a única instância
+
+    // Obter instância singleton
+    static FastADC_PA0_STM32_S2& getInstance(uint32_t periodoAmostragemUs, uint16_t periodoTotalUs, uint8_t dimensaoBufferCircular = 100)
+    {
+        if (!instance_)
+            instance_ = new FastADC_PA0_STM32_S2(periodoAmostragemUs, periodoTotalUs, dimensaoBufferCircular);
+        return *instance_;
+    }
+
     static FastADC_PA0_STM32_S2& getInstance()
     {
-        static FastADC_PA0_STM32_S2 instance;
-        return instance;
+        return *instance_;
     }
 
-    // Função pública para obter a instância
-    static FastADC_PA0_STM32_S2& getInstance(uint16_t periodoUs)
-    {
-        static PWM_PB1_STM32_S instance(freqHz, dpwmAtual, dpwmMaximo, aceleracao, staticLerAdcA0);
-        return instance;
-    }
-
-    // // Chamadas posteriores: usa instância existente
-    static PWM_PB1_STM32_S& getInstance() { return *instance_; }
-
-    static void leituraSincronizadaPWM(void)
-    {
-        static uint8_t indiceCircular_ = 0;
-        // Leitura ADC
-        uint16_t leitura = leituraAdc_();
-        // Sobrescreve o elemento mais antigo no vetor
-        vetorADC_[indiceCircular_] = leitura;
-        // Atualiza o índice circular
-        indiceCircular_ = (indiceCircular_ + 1) % dimensaoAmostrasMediaMovel_;
-    }
-
-    int16_t obterGrandezaMedia(void)
-    {
-        uint32_t soma = 0;
-        for (uint8_t i = 0; i < dimensaoAmostrasMediaMovel_; i++)
-            soma += vetorADC_[i];
-        uint16_t media = soma / dimensaoAmostrasMediaMovel_;
-        media = media - valorNuloAdc_; // Remove valor nulo
-        return media;
-    }
-
-    uint16_t obterValorNuloAdc(void) { return valorNuloAdc_; }
+    // Métodos para acessar valores
+    uint16_t obterValorNuloAdc() { return valorNuloAdc_; }
+    uint16_t obterValorMedio() { return valorMedio_; }
+    uint16_t obterValorMaximo() { return valorMaximo_; }
+    bool isBufferCheio() { return bufferCheio_; }
+    const std::vector<uint16_t>& obterBuffer() { return bufferLeituras_; }
 
     void recalibrarValorNuloAdc(uint16_t totalLeituras = 100) { calcularValorNuloAdc(totalLeituras); }
 };
 
-uint16_t FastADC_PA0_STM32_S::vetorADC_[dimensaoAmostrasMediaMovel_] = {0};
-uint16_t FastADC_PA0_STM32_S::valorNuloAdc_ = 0;
+// Inicialização dos membros estáticos
+std::vector<uint16_t> FastADC_PA0_STM32_S2::bufferLeituras_;
+std::vector<uint16_t> FastADC_PA0_STM32_S2::bufferCircularCiclosLeituras_;
+uint8_t FastADC_PA0_STM32_S2::dimensaoBufferCircular_ = 0;
+uint8_t FastADC_PA0_STM32_S2::posicaoBufferCircular_ = 0;
+uint32_t FastADC_PA0_STM32_S2::periodoAmostragemUs_ = 0;
+uint16_t FastADC_PA0_STM32_S2::periodoTotalUs_ = 0;
+uint16_t FastADC_PA0_STM32_S2::capacidadeBuffer_ = 0;
+uint16_t FastADC_PA0_STM32_S2::valorNuloAdc_ = 0;
+bool FastADC_PA0_STM32_S2::bufferCheio_ = false;
+uint16_t FastADC_PA0_STM32_S2::valorMedio_ = 0;
+uint16_t FastADC_PA0_STM32_S2::valorMaximo_ = 0;
+HardwareTimer* FastADC_PA0_STM32_S2::timer2_ = nullptr;
+FastADC_PA0_STM32_S2* FastADC_PA0_STM32_S2::instance_ = nullptr;
