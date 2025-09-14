@@ -27,8 +27,7 @@ private:
     PWM_PB1_STM32_S(Variavel<uint16_t>& freqHz, 
                     Variavel<uint8_t>& dpwmAtual,
                     Variavel<uint8_t>& dpwmMaximo, 
-                    Variavel<float>& aceleracao, 
-                    void (*staticLerAdcA0)(void) = nullptr)
+                    Variavel<float>& aceleracao)
         :   freqHz_(freqHz), 
             dpwmAtual_(dpwmAtual), 
             dpwmMaximo_(dpwmMaximo),
@@ -49,10 +48,9 @@ public:
     static PWM_PB1_STM32_S& getInstance(Variavel<uint16_t>& freqHz, 
                                         Variavel<uint8_t>& dpwmAtual, 
                                         Variavel<uint8_t>& dpwmMaximo, 
-                                        Variavel<float>& aceleracao, 
-                                        void (*staticLerAdcA0)(void) = nullptr)
+                                        Variavel<float>& aceleracao)
     {
-        static PWM_PB1_STM32_S instance(freqHz, dpwmAtual, dpwmMaximo, aceleracao, staticLerAdcA0);
+        static PWM_PB1_STM32_S instance(freqHz, dpwmAtual, dpwmMaximo, aceleracao);
         return instance;
     }
 
@@ -93,11 +91,11 @@ public:
         uint32_t arr = 0;
 
         // Ajustar prescaler para manter ARR dentro do limite de 16 bits
-        for (psc = 0; psc <= 0xFFFF; ++psc) {
+        for (psc = 0; psc <= 0xFFFF; ++psc) 
+        {
             arr = (timerClk / ((psc + 1) * freqHz_100a10k)) - 1;
-            if (arr <= 0xFFFF) {
+            if (arr <= 0xFFFF) 
                 break; // Encontrou um valor válido para PSC e ARR
-            }
         }
         TIM3->PSC = psc;  // Configurar prescaler
         TIM3->ARR = arr;  // Configurar ARR
@@ -117,12 +115,12 @@ public:
 
     void definirDpwmImediato(uint8_t d0a100)
     {
+        return;
         if (d0a100 > dpwmMaximo_.obterValor()) 
             d0a100 = dpwmMaximo_.obterValor();
         dpwmAtual_.definirValor(d0a100);
         uint32_t ccr = (TIM3->ARR + 1) * d0a100 / 100.0;
         TIM3->CCR4 = ccr;
-        TIM3->CCR1 = ccr / 2;
     }
 
     void definirDpwmRampa(uint8_t d0a100_alvo)
