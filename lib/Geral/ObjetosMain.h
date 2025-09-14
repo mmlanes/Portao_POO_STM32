@@ -9,7 +9,7 @@
 #include "ChaveSTM32.h"
 #include "EncoderSTM32.h"
 #include "PWM_PB1_STM32_S.h"
-#include "FastADC_PA0_STM32_S.h"
+#include "FastADC_PA0_STM32_S2.h"
 #include "Variavel.h"
 #include "ModosOperacao.h"
 #include "ChavesCombinadas.h"
@@ -49,6 +49,7 @@ Variavel<uint8_t> dPWMParada("dPWMParada", 10, 0, 100, 1, true);
 Variavel<float> acelPWM("acelPWM", 1.0f, 0.1f, 100.0, 0.1f, true);
 Variavel<float> adjADC("adjADC", 1.7e-3f, 0.1e-3f, 10.0e-3f, 0.1e-3f, true);
 Variavel<float> iMedio("iMedio", 0.0f, 0.0f, 20.0f, 0.0f, false);
+Variavel<float> iPico("iPico", 0.0f, 0.0f, 20.0f, 0.0f, false);
 // Variáveis para portão
 Variavel<String> posicaoPortao("posPortao", "", false);
 Variavel<String> operacaoPortao("operPortao", "", false);
@@ -65,7 +66,7 @@ Variavel<float> iProt("iProt", 5.0f, 1.0f, 20.0f, 0.1f, true);
 
 EncoderSTM32 encAB(encPos, encMax, encRev, PA12, PA15, true, false, false);
 
-ModosOperacao modoNormal("Normal");
+ModosOperacao modoNormal("N:");
 ModosOperacao modoMonitorGeral("Monitor geral");
 ModosOperacao modoProtEncParadoAtuado("Prot. EncPar Atuada");
 ModosOperacao modoProtSobrecorrenteAtuado("Prot. Imax");
@@ -86,7 +87,7 @@ ModosOperacao modoCarregarConfigFlash("Carrega config Flash");
 String trocarTela = "Tela P+A >> e P+F <<";
 String incDecBool = "Valor: BtA=1 e BtF=0";
 String incDecNum = "Valor: BtA=+ e BtF=-";
-MensagemLCD mNormal(&modoNormal, "$modo$ Im=$iMedio$A", "D=$dPWM$ AB=$encPos$ PEI=$protEncParadoAtuada$$protSobrecorrenteAtuada$", "PP=$posPortao$ OP=$operPortao$ EA=$encAtivo$", trocarTela);
+MensagemLCD mNormal(&modoNormal, "$modo$ Im=$iMedio$A/Ipk=$iPico$A", "D=$dPWM$ AB=$encPos$ PEI=$protEncParadoAtuada$$protSobrecorrenteAtuada$", "PP=$posPortao$ OP=$operPortao$ EA=$encAtivo$", trocarTela);
 //MensagemLCD mNormal(&modoNormal, "$modo$", "D=$dPWM$ AB=$encPos$ Im=$iMedio$A", "PP.OP.RA.PEI=$posPortao$.$operPortao$.$encAtivo$.$protEncParado$$protSobrecorrente$", trocarTela);
 MensagemLCD mProtEncParado(&modoProtEncParadoAtuado, "$modo$", "ativada = $protEncParadoAtuada$", "(atua se Enc Ativo)", trocarTela);
 MensagemLCD mProtSobrecorrente(&modoProtSobrecorrenteAtuado, "$modo$", "ativada = $protSobrecorrenteAtuada$", " ", trocarTela);
@@ -105,10 +106,12 @@ MensagemLCD mRampaPWMPosicao(&modoRampaPWMPosicao, "$modo$", "$rampaPWMPos$ %PWM
 MensagemLCD mSalvarFlash(&modoSalvarConfigFlash, "$modo$", "$salvarConfigFlash$", "Bts(A+F) 5s salvar", trocarTela);
 MensagemLCD mCarregarFlash(&modoCarregarConfigFlash, "$modo$", "$carregarConfigFlash$", "Bts(A+F) 5s carreg", trocarTela);
 
-auto& adc = FastADC_PA0_STM32_S::getInstance();
-auto& pwm = PWM_PB1_STM32_S::getInstance(freqPWM, dPWM, dPWMMax, acelPWM, FastADC_PA0_STM32_S::leituraSincronizadaPWM); // 5000 Hz e função de leitura do ADC
+HardwareTimer timer2(TIM2);  // criado fora da classe
+FastADC_PA0_STM32_S2* adc = nullptr;
 
-Motor motor(PB11, PB10, pwm, adc, iMedio, adjADC); // pino KD, KE, PWM
+auto& pwm = PWM_PB1_STM32_S::getInstance(freqPWM, dPWM, dPWMMax, acelPWM); // 5000 Hz e função de leitura do ADC
+
+Motor motor(PB11, PB10, pwm, *adc, iMedio, adjADC); // pino KD, KE, PWM
 Portao portao(fcS, fcI, encAB, motor, encAtivo, encPosPartida0a100, encPosParada0a100, dPWMPartida, dPWMParada, rampaPWMPosicao);
 Protecao protecao(portao, iProt, 
                   protecaoEncoderParadoAtuada, protecaoSobrecorrenteAtuada,

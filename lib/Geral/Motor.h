@@ -13,7 +13,7 @@ private:
     uint8_t pinKD_;
     uint8_t pinKE_;
     PWM_PB1_STM32_S& pwm_;
-    FastADC_PA0_STM32_S& adc_;
+    FastADC_PA0_STM32_S2& adc_;
     Variavel<float>& kAjuste_;
     Variavel<float>& Imedio_;
     uint16_t tempoEsperaRele_;
@@ -71,7 +71,7 @@ public:
     Motor(uint8_t pinKD, 
           uint8_t pinKE, 
           PWM_PB1_STM32_S& pwm, 
-          FastADC_PA0_STM32_S& adc,
+          FastADC_PA0_STM32_S2& adc,
           Variavel<float>& imedio,
           Variavel<float>& kADCAjusteValorReal,
           uint16_t tempoEsperaAcionarReles_ms = 1000,
@@ -160,7 +160,7 @@ public:
 
     float obterImedio(float valorMinino = 0.1f)
     {
-        int16_t MediaADC = adc_.obterGrandezaMedia();
+        int16_t MediaADC = adc_.obterMediaMovel();
         float Im = (float)MediaADC * kAjuste_.obterValor();
         //Serial2.println("MediaADC=" + String(MediaADC) + " kAjuste=" + String(kAjuste_.obterValor()) + " Imedio=" + String(Im));
         if (Im > -valorMinino && Im < valorMinino) 

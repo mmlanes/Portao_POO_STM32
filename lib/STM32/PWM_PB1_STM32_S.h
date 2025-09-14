@@ -19,16 +19,9 @@ private:
     Variavel<uint8_t>& dpwmAtual_;
     Variavel<uint8_t>& dpwmMaximo_;
     Variavel<float>& aceleracao_; // uma porcentagem por segundo
-    void (*lerAdcA0_)(void);
     uint8_t dpwmAlvo_;
     unsigned long tempoInicioRampa_;
     static PWM_PB1_STM32_S* instance_; // Ponteiro estático para a instância única Singleton
-    HardwareTimer* timer3_;
-    static void isrTim3_(void)
-    {
-        if (instance_ && instance_->lerAdcA0_)
-            instance_->lerAdcA0_();
-    }
 
     // Construtor privado
     PWM_PB1_STM32_S(Variavel<uint16_t>& freqHz, 
@@ -39,11 +32,9 @@ private:
         :   freqHz_(freqHz), 
             dpwmAtual_(dpwmAtual), 
             dpwmMaximo_(dpwmMaximo),
-            aceleracao_(aceleracao), 
-            lerAdcA0_(staticLerAdcA0), 
+            aceleracao_(aceleracao),  
             dpwmAlvo_(0), 
-            tempoInicioRampa_(millis()), 
-            timer3_(nullptr)
+            tempoInicioRampa_(millis())
     {
         instance_ = this;
         defineFrequencia(freqHz.obterValor());
@@ -86,13 +77,6 @@ public:
         Serial2.println("Definindo freq: " + String(freqHz_100a10k));
         freqHz_.definirValor(freqHz_100a10k);
         
-        if (!timer3_) 
-        {
-            timer3_ = new HardwareTimer(TIM3);
-            timer3_->attachInterrupt(1, isrTim3_);
-            timer3_->resume();
-        }
-
         float d0a100 = 0;
         RCC->APB2ENR |= RCC_APB2ENR_IOPBEN;
         RCC->APB1ENR |= RCC_APB1ENR_TIM3EN;
@@ -127,21 +111,6 @@ public:
         TIM3->CCMR2 |= (6 << TIM_CCMR2_OC4M_Pos);
         TIM3->CCMR2 |= TIM_CCMR2_OC4PE;
         TIM3->CCER |= TIM_CCER_CC4E;
-
-        // Canal 1 modo timing para interrupção
-        TIM3->CCMR1 &= ~(TIM_CCMR1_OC1M);
-        TIM3->CCMR1 |= TIM_CCMR1_OC1PE;  // preload enable
-
-        TIM3->CCER &= ~TIM_CCER_CC1E;   // saída desabilitada no canal 1
-
-        TIM3->DIER |= TIM_DIER_CC1IE;   // habilita interrupção canal 1
-
-        TIM3->CR1 |= TIM_CR1_ARPE;
-        TIM3->EGR |= TIM_EGR_UG;
-
-        NVIC_EnableIRQ(TIM3_IRQn);
-
-        TIM3->CR1 |= TIM_CR1_CEN;
 
         definirDpwmImediato(0);
     }

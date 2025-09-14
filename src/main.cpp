@@ -6,7 +6,8 @@
 #include "ChaveSTM32.h"
 #include "EncoderSTM32.h"
 #include "PWM_PB1_STM32_S.h"
-#include "FastADC_PA0_STM32_S.h"
+//#include "FastADC_PA0_STM32_S.h"
+#include "FastADC_PA0_STM32_S2.h"
 #include "Variavel.h"
 #include "ModosOperacao.h"
 #include "ChavesCombinadas.h"
@@ -33,11 +34,11 @@ void setup()
     Serial2.println("CFG: " + cfg.obterStringCompleta() + "|");
     CarregarVariaveisFlash();
     delay(200);
-    //ModosOperacao::modoSeguinte();
 }
 
 void loop()
 {
+    static uint16_t fPWM_old = 0;
     // Atualização de variáveis para visualização e controle
     dPWM.definirValor(pwm.obterDpwmAtual());                    // Atualiza Variavel<uint8_t> dPWM
     posicaoPortao.definirValor(portao.obterPosicaoAtualString()); // Atualiza Variavel<uint8_t> posPortao
@@ -47,6 +48,22 @@ void loop()
     ChaveSTM32::atualizarTodas();                               // Atualiza todas as chaves
     motor.monitorar();                                          // Atualiza o estado do motor
     pwm.monitorar();                                        // Atualiza a rampa de PWM
+    if (fPWM_old != freqPWM.obterValor())                      // Se mudou a frequência do PWM
+    {
+        if (adc)
+        {
+            adc = nullptr;
+            FastADC_PA0_STM32_S2::destruirSingleton(); // Reseta o singleton para permitir nova criação
+        }
+        fPWM_old = freqPWM.obterValor();
+        uint32_t periodoPWMUs = 1000000 / fPWM_old;
+        FastADC_PA0_STM32_S2* adc = FastADC_PA0_STM32_S2::PeriodoTotal(iMedio,
+                                                                       iPico, 
+                                                                       10,  // periodoAmostragemUs
+                                                                       periodoPWMUs, // periodoTotalUs
+                                                                       100,    // tamanhoMediaMovel
+                                                                       &timer2);    
+    }
     portao.monitorar();                                         // Atualiza o portão
     protecao.monitorar();                                       // Monitora as proteções
     controladorPortao.monitorar();                              // Monitora o controlador do portão
