@@ -85,3 +85,21 @@ void CarregarVariaveisFlash(void)
         }
     }
 }
+
+void rotina5Segundos() 
+{
+    static unsigned long ultimoTempo = 0;
+    unsigned long agora = millis();
+
+    if (agora - ultimoTempo >= 5000) 
+    {
+        ultimoTempo = agora;
+
+        adc->desanexarInterrupcao();   // isr não será chamada
+        adc->pausarTimer();            // se houver função para pausar o timer
+        adc->imprimirMediaMovel();
+        adc->anexarInterrupcao();      // isr pode rodar novamente
+        adc->resumirTimer();           // se houver função para retomar timer
+    }
+}
+

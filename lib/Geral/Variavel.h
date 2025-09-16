@@ -127,6 +127,7 @@ public:
     String paraString() const override {
         if (std::is_same<T, float>::value) {
             if (_valor == 0.0f) return "0.00e+0";
+            if (_valor >= 0.1f && _valor < 100.0f) return String(_valor, 1);
             float val = _valor;
             int expoente = 0;
             bool negativo = false;

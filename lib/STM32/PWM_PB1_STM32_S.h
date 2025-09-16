@@ -62,17 +62,14 @@ public:
     void defineFrequencia(uint32_t freqHz_100a10k)
     {
         static uint16_t lastFreq = 0;
-
-        if (freqHz_100a10k == lastFreq)
-            return; // Mesma frequência, nada a fazer
-        
+              
         // Limites de frequência
         if (freqHz_100a10k < 100 || freqHz_100a10k > 10000)
             return; // Frequência fora do intervalo permitido
         if (freqHz_100a10k == lastFreq)
             return; // Mesma frequência, nada a fazer
         lastFreq = freqHz_100a10k;
-        Serial2.println("Definindo freq: " + String(freqHz_100a10k));
+
         freqHz_.definirValor(freqHz_100a10k);
         
         float d0a100 = 0;
@@ -102,20 +99,20 @@ public:
 
         uint32_t ccr4 = (arr + 1) * d0a100 / 100.0;
         TIM3->CCR4 = ccr4;
-        TIM3->CCR1 = ccr4 / 2;  // meio do HIGH
 
         // PWM canal 4 modo 1
         TIM3->CCMR2 &= ~TIM_CCMR2_OC4M;
         TIM3->CCMR2 |= (6 << TIM_CCMR2_OC4M_Pos);
         TIM3->CCMR2 |= TIM_CCMR2_OC4PE;
         TIM3->CCER |= TIM_CCER_CC4E;
+        // Habilita contador do timer
+        TIM3->CR1 |= TIM_CR1_CEN;
 
-        definirDpwmImediato(0);
+        definirDpwmImediato(50);
     }
 
     void definirDpwmImediato(uint8_t d0a100)
     {
-        return;
         if (d0a100 > dpwmMaximo_.obterValor()) 
             d0a100 = dpwmMaximo_.obterValor();
         dpwmAtual_.definirValor(d0a100);
@@ -178,7 +175,6 @@ public:
                     dpwmAtual_.definirValor(dpwmAtual_.obterValor() - dPwmPossivel);
             }
         }
-        //Serial2.println(String(tempoInicioRampa_) + "/" + String(agora));
         tempoInicioRampa_ = agora;
         definirDpwmImediato(dpwmAtual_.obterValor());
     }
@@ -187,7 +183,6 @@ public:
     {
         // Chamar periodicamente em loop()
         atualizaRampa();
-        defineFrequencia(freqHz_.obterValor());
     }
 };
 

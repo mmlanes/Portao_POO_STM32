@@ -5,14 +5,14 @@
 class MediaSimples 
 {
 private:
+    uint16_t capacidade_;
     float soma_;
     uint16_t quantidade_;
-    uint16_t capacidade_;
     float ultimaMedia_;
 
 public:
     MediaSimples(uint16_t capacidade)
-        : soma_(0), quantidade_(0), capacidade_(capacidade), ultimaMedia_(0) 
+        : capacidade_(capacidade), soma_(0), quantidade_(0), ultimaMedia_(0) 
     {}
 
     void adicionar(float valor) 
@@ -71,16 +71,13 @@ public:
         delete[] buffer_;
     }
 
-    void adicionar(float valor) 
-    {
-        if (quantidade_ < capacidade_) 
-        {
+    void adicionar(float valor) {
+        if (quantidade_ < capacidade_) {
             soma_ += valor;
-            buffer_[indice_++] = valor;
+            buffer_[indice_] = valor;
+            indice_ = (indice_ + 1) % capacidade_;
             quantidade_++;
-        } 
-        else 
-        {
+        } else {
             soma_ -= buffer_[indice_];
             soma_ += valor;
             buffer_[indice_] = valor;
@@ -103,52 +100,65 @@ public:
         quantidade_ = 0;
         indice_ = 0;
     }
+
+    float obterValor(uint16_t indice) const 
+    {
+        if (indice >= quantidade_) 
+            return 0.0f; // fora do intervalo
+        uint16_t idxReal = (indice_ + capacidade_ - quantidade_ + indice) % capacidade_;
+        return buffer_[idxReal];
+    }
+
+    uint16_t obterQuantidade() const 
+    {
+        return quantidade_;
+    }
 };
 
 // ----------------------- Classe Composta -----------------------
 class MediaComposta 
 {
 private:
-    MediaSimples mediaSimples_;
-    MediaMovel mediaMovel_;
+    MediaSimples* mediaSimples_;
+    MediaMovel* mediaMovel_;
     float maiorLeitura_;
 
 public:
     MediaComposta(uint16_t qtdSimples, uint16_t qtdMovel)
-        : mediaSimples_(qtdSimples), mediaMovel_(qtdMovel), maiorLeitura_(0.0f) 
+        : mediaSimples_(new MediaSimples(qtdSimples)), mediaMovel_(new MediaMovel(qtdMovel)), maiorLeitura_(0.0f) 
     {}
 
     // Adiciona novo valor
     void adicionar(float valor) 
     {
-        mediaSimples_.adicionar(valor);
+        mediaSimples_->adicionar(valor);
         if (valor > maiorLeitura_) 
             maiorLeitura_ = valor;
 
-        if (mediaSimples_.completa()) 
+        if (mediaSimples_->completa()) 
         {
-            float media = mediaSimples_.obterMedia();
-            mediaMovel_.adicionar(media);
-            mediaSimples_.zerar();
+            float media = mediaSimples_->obterMedia();
+            mediaMovel_->adicionar(media);
+            mediaSimples_->zerar();
         }
     }
 
     // Última média simples
     float obterMediaSimples() const 
     {
-        return mediaSimples_.obterMedia();
+        return mediaSimples_->obterMedia();
     }
 
     // Média móvel
     float obterMediaMovel() const 
     {
-        return mediaMovel_.obterMedia();
+        return mediaMovel_->obterMedia();
     }
 
     // Última média simples completa
     float obterUltimaMediaSimples() const 
     {
-        return mediaSimples_.obterUltimaMedia();
+        return mediaSimples_->obterUltimaMedia();
     }
 
     // Maior valor inserido
@@ -160,8 +170,8 @@ public:
     // Zera tudo
     void zerar() 
     {
-        mediaSimples_.zerar();
-        mediaMovel_.zerar();
+        mediaSimples_->zerar();
+        mediaMovel_->zerar();
         maiorLeitura_ = 0.0f;
     }
 
@@ -169,5 +179,13 @@ public:
     void resetMaiorLeitura(float valorReset = 0.0f) 
     {
         maiorLeitura_ = valorReset;
+    }
+
+    void imprimirMediaMovel() const 
+    {
+        uint16_t qtd = mediaMovel_->obterQuantidade();
+        Serial2.println("qtd: " + String(qtd));
+        for (uint16_t i = 0; i < qtd; i++)
+            Serial2.print(String(i) + ": " + String(mediaMovel_->obterValor(i), 4) + " ");
     }
 };

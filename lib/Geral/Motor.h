@@ -1,8 +1,8 @@
 #pragma once
 
 #include <Arduino.h>
-#include "PWM_PB1_STM32_S.h"
 #include "Variavel.h"
+#include "FastADC_PA0_STM32_S2.h"
 
 class Motor
 {
@@ -13,9 +13,7 @@ private:
     uint8_t pinKD_;
     uint8_t pinKE_;
     PWM_PB1_STM32_S& pwm_;
-    FastADC_PA0_STM32_S2& adc_;
-    Variavel<float>& kAjuste_;
-    Variavel<float>& Imedio_;
+    FastADC_PA0_STM32_S2* adc_;
     uint16_t tempoEsperaRele_;
     uint16_t tempoAtualizacaoAutomaticaImedioMs_;
     uint8_t dpwmAlvo_;
@@ -71,17 +69,13 @@ public:
     Motor(uint8_t pinKD, 
           uint8_t pinKE, 
           PWM_PB1_STM32_S& pwm, 
-          FastADC_PA0_STM32_S2& adc,
-          Variavel<float>& imedio,
-          Variavel<float>& kADCAjusteValorReal,
+          FastADC_PA0_STM32_S2* adc = nullptr,
           uint16_t tempoEsperaAcionarReles_ms = 1000,
           uint16_t tempoAtualizacaoAutomaticaImedio_ms = 500)
         : pinKD_(pinKD), 
           pinKE_(pinKE), 
           pwm_(pwm), 
           adc_(adc),
-          Imedio_(imedio),
-          kAjuste_(kADCAjusteValorReal),
           tempoEsperaRele_(tempoEsperaAcionarReles_ms), 
           tempoAtualizacaoAutomaticaImedioMs_(tempoAtualizacaoAutomaticaImedio_ms),
           dpwmAlvo_(0)
@@ -149,41 +143,23 @@ public:
         }
     }
 
-    void definirkADCAjusteValorReal(float kAjuste = 1.7e-3f) { kAjuste_.definirValor(kAjuste); }
+    void definirkADCAjusteValorReal(float kAjuste = 1.7e-3f) { }
 
-    float obterkADCAjusteValorReal(void) { return kAjuste_.obterValor(); }
+    float obterkADCAjusteValorReal(void) { return 0; }
 
     float obterUltimoImedio(void)
     {
-        return Imedio_.obterValor();
+        return 0;
     }
 
     float obterImedio(float valorMinino = 0.1f)
     {
-        int16_t MediaADC = adc_.obterMediaMovel();
-        float Im = (float)MediaADC * kAjuste_.obterValor();
-        //Serial2.println("MediaADC=" + String(MediaADC) + " kAjuste=" + String(kAjuste_.obterValor()) + " Imedio=" + String(Im));
-        if (Im > -valorMinino && Im < valorMinino) 
-            Im = 0.0f;  
-        Imedio_.definirValor(Im);
-        return Im;
+        return 0;
     }
 
     void atualizacaoPeriodicaImedio(uint16_t intervaloMs)
     {
-        static unsigned long ultimoUpdate_ = 0;  
-        static float ultimaMedia_ = 0.0f;         
-
-        if (intervaloMs == 0)
-            return;
-
-        unsigned long agora = millis();
-        if (agora - ultimoUpdate_ >= intervaloMs)
-        {
-            obterImedio();
-            //Serial2.println("Imedio atualizado: " + String(Imedio_.obterValor()) + " A");
-            ultimoUpdate_ = agora;
-        }
+ 
     }
 
     void monitorar()

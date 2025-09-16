@@ -87,7 +87,7 @@ ModosOperacao modoCarregarConfigFlash("Carrega config Flash");
 String trocarTela = "Tela P+A >> e P+F <<";
 String incDecBool = "Valor: BtA=1 e BtF=0";
 String incDecNum = "Valor: BtA=+ e BtF=-";
-MensagemLCD mNormal(&modoNormal, "$modo$ Im=$iMedio$A/Ipk=$iPico$A", "D=$dPWM$ AB=$encPos$ PEI=$protEncParadoAtuada$$protSobrecorrenteAtuada$", "PP=$posPortao$ OP=$operPortao$ EA=$encAtivo$", trocarTela);
+MensagemLCD mNormal(&modoNormal, "$modo$ Im=$iMedio$/Ipk=$iPico$", "D=$dPWM$ AB=$encPos$ PEI=$protEncParadoAtuada$$protSobrecorrenteAtuada$", "PP=$posPortao$ OP=$operPortao$ EA=$encAtivo$", trocarTela);
 //MensagemLCD mNormal(&modoNormal, "$modo$", "D=$dPWM$ AB=$encPos$ Im=$iMedio$A", "PP.OP.RA.PEI=$posPortao$.$operPortao$.$encAtivo$.$protEncParado$$protSobrecorrente$", trocarTela);
 MensagemLCD mProtEncParado(&modoProtEncParadoAtuado, "$modo$", "ativada = $protEncParadoAtuada$", "(atua se Enc Ativo)", trocarTela);
 MensagemLCD mProtSobrecorrente(&modoProtSobrecorrenteAtuado, "$modo$", "ativada = $protSobrecorrenteAtuada$", " ", trocarTela);
@@ -111,7 +111,7 @@ FastADC_PA0_STM32_S2* adc = nullptr;
 
 auto& pwm = PWM_PB1_STM32_S::getInstance(freqPWM, dPWM, dPWMMax, acelPWM); // 5000 Hz e função de leitura do ADC
 
-Motor motor(PB11, PB10, pwm, *adc, iMedio, adjADC); // pino KD, KE, PWM
+Motor motor(PB11, PB10, pwm); // pino KD, KE, PWM
 Portao portao(fcS, fcI, encAB, motor, encAtivo, encPosPartida0a100, encPosParada0a100, dPWMPartida, dPWMParada, rampaPWMPosicao);
 Protecao protecao(portao, iProt, 
                   protecaoEncoderParadoAtuada, protecaoSobrecorrenteAtuada,

@@ -34,6 +34,11 @@ void setup()
     Serial2.println("CFG: " + cfg.obterStringCompleta() + "|");
     CarregarVariaveisFlash();
     delay(200);
+    pwm.defineFrequencia(freqPWM.obterValor());
+    uint32_t periodoPWMUs = 1000000 / freqPWM.obterValor();
+    adc = FastADC_PA0_STM32_S2::PeriodoTotal(iMedio, iPico, 10, periodoPWMUs, 100, &timer2);
+    pinMode(PC13, OUTPUT);
+    digitalWrite(PC13, LOW); // LED apagado,
 }
 
 void loop()
@@ -47,23 +52,8 @@ void loop()
     // Ações essenciais do sistema
     ChaveSTM32::atualizarTodas();                               // Atualiza todas as chaves
     motor.monitorar();                                          // Atualiza o estado do motor
-    pwm.monitorar();                                        // Atualiza a rampa de PWM
-    if (fPWM_old != freqPWM.obterValor())                      // Se mudou a frequência do PWM
-    {
-        if (adc)
-        {
-            adc = nullptr;
-            FastADC_PA0_STM32_S2::destruirSingleton(); // Reseta o singleton para permitir nova criação
-        }
-        fPWM_old = freqPWM.obterValor();
-        uint32_t periodoPWMUs = 1000000 / fPWM_old;
-        FastADC_PA0_STM32_S2* adc = FastADC_PA0_STM32_S2::PeriodoTotal(iMedio,
-                                                                       iPico, 
-                                                                       10,  // periodoAmostragemUs
-                                                                       periodoPWMUs, // periodoTotalUs
-                                                                       100,    // tamanhoMediaMovel
-                                                                       &timer2);    
-    }
+    pwm.monitorar();                                            // Atualiza a rampa de PWM    
+    adc->monitorar();                                           // Atualiza o ADC rápido
     portao.monitorar();                                         // Atualiza o portão
     protecao.monitorar();                                       // Monitora as proteções
     controladorPortao.monitorar();                              // Monitora o controlador do portão
@@ -75,6 +65,8 @@ void loop()
     for (auto* msg : MensagemLCD::todas())                      // Envia mensagens para o LCD
         m.enviarMensagem(msg);
     CarregarSalvarVariaveisFlash();                             // Carrega ou salva variáveis na Flash
+
+    //rotina5Segundos();
 }
 
 

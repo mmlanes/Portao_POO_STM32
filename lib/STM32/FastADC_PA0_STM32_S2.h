@@ -20,7 +20,7 @@ private:
     // Construtor privado
     FastADC_PA0_STM32_S2(Variavel<float>& iMedio,
                          Variavel<float>& iPico,       
-                         MediaComposta& mediaComposta, 
+                         MediaComposta* mediaComposta, 
                          uint32_t periodoAmostragemUs, 
                          uint32_t periodoTotalUs,
                          uint16_t amostrasPorPeriodo,
@@ -28,7 +28,7 @@ private:
                          HardwareTimer* timer = nullptr)
         : iMedio_(iMedio),
           iPico_(iPico),
-          mediaComposta_(&mediaComposta),
+          mediaComposta_(nullptr),
           periodoAmostragemUs_(periodoAmostragemUs),
           periodoTotalUs_(periodoTotalUs),
           amostrasPorPeriodo_(amostrasPorPeriodo),
@@ -37,7 +37,7 @@ private:
           timer_(timer)
     {
         instance_ = this;
-     
+        mediaComposta_ = new MediaComposta(amostrasPorPeriodo, tamanhoMediaMovel);
         setupAdcPa0Fast();
         calcularValorNuloAdc();
         configuraTimer(periodoAmostragemUs_);
@@ -58,8 +58,10 @@ private:
     // ISR do timer
     static void isrTimer_()
     {
+        GPIOC->BSRR = (1 << 13);
         if (instance_ && instance_->mediaComposta_)
             instance_->mediaComposta_->adicionar((float)instance_->leituraAdc_());
+        GPIOC->BSRR = (1 << (13 + 16));
     }
 
     void configuraTimer(uint32_t periodoUs)
@@ -69,18 +71,6 @@ private:
             timer_->setOverflow(periodoUs, MICROSEC_FORMAT);
             timer_->resume();
         }
-    }
-
-    void anexarInterrupcao()
-    {
-        if (timer_)
-            timer_->attachInterrupt(isrTimer_);
-    }
-
-    void desanexarInterrupcao()
-    {
-        if (timer_)
-            timer_->detachInterrupt();
     }
 
     uint16_t leituraAdc_()
@@ -135,8 +125,7 @@ public:
         if (!instance_)
         {
             uint32_t periodoTotalUs = periodoAmostragemUs * amostrasPorPeriodo;
-            MediaComposta* mediaComposta = new MediaComposta(amostrasPorPeriodo, tamanhoMediaMovel);
-            instance_ = new FastADC_PA0_STM32_S2(iMedio, iPico, *mediaComposta, periodoAmostragemUs, periodoTotalUs, amostrasPorPeriodo, tamanhoMediaMovel, timer);
+            instance_ = new FastADC_PA0_STM32_S2(iMedio, iPico, nullptr, periodoAmostragemUs, periodoTotalUs, amostrasPorPeriodo, tamanhoMediaMovel, timer);
         }
         return instance_;
     }
@@ -152,8 +141,7 @@ public:
         if (!instance_)
         {
             uint16_t amostrasPorPeriodo = periodoTotalUs / periodoAmostragemUs;
-            MediaComposta* mediaComposta = new MediaComposta(amostrasPorPeriodo, tamanhoMediaMovel);
-            instance_ = new FastADC_PA0_STM32_S2(iMedio, iPico, *mediaComposta, periodoAmostragemUs, periodoTotalUs, amostrasPorPeriodo, tamanhoMediaMovel, timer);
+            instance_ = new FastADC_PA0_STM32_S2(iMedio, iPico, nullptr, periodoAmostragemUs, periodoTotalUs, amostrasPorPeriodo, tamanhoMediaMovel, timer);
         }
         return instance_;
     }
@@ -179,6 +167,47 @@ public:
     float obterUltimaLeituraMedia() { return mediaComposta_->obterUltimaMediaSimples(); }
     float obterValorMaximo() { return mediaComposta_->obterMaiorLeitura(); }
     void recalibrarValorNuloAdc(uint16_t totalLeituras = 100) { calcularValorNuloAdc(totalLeituras); }
+
+    void anexarInterrupcao()
+    {
+        if (timer_)
+            timer_->attachInterrupt(isrTimer_);
+    }
+
+    void desanexarInterrupcao()
+    {
+        if (timer_)
+            timer_->detachInterrupt();
+    }
+
+    void pausarTimer()
+    {
+        if (timer_)
+            timer_->pause();
+    }
+
+    void resumirTimer()
+    {
+        if (timer_)
+            timer_->resume();
+    }
+
+    void imprimirMediaMovel()
+    {
+        if (mediaComposta_)
+            mediaComposta_->imprimirMediaMovel();
+    }
+
+    void monitorar()
+    {
+        if (mediaComposta_)
+        {
+            float media = mediaComposta_->obterMediaMovel();
+            iMedio_.definirValor(media);
+            float pico = mediaComposta_->obterUltimaMediaSimples();
+            iPico_.definirValor(pico);
+        }
+    }
 };
 
 // Inicialização do singleton
