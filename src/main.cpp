@@ -43,7 +43,6 @@ void setup()
 
 void loop()
 {
-    static uint16_t fPWM_old = 0;
     // Atualização de variáveis para visualização e controle
     dPWM.definirValor(pwm.obterDpwmAtual());                    // Atualiza Variavel<uint8_t> dPWM
     posicaoPortao.definirValor(portao.obterPosicaoAtualString()); // Atualiza Variavel<uint8_t> posPortao
@@ -52,8 +51,6 @@ void loop()
     // Ações essenciais do sistema
     ChaveSTM32::atualizarTodas();                               // Atualiza todas as chaves
     motor.monitorar();                                          // Atualiza o estado do motor
-    pwm.monitorar();                                            // Atualiza a rampa de PWM    
-    adc->monitorar();                                           // Atualiza o ADC rápido
     portao.monitorar();                                         // Atualiza o portão
     protecao.monitorar();                                       // Monitora as proteções
     controladorPortao.monitorar();                              // Monitora o controlador do portão
@@ -66,7 +63,7 @@ void loop()
         m.enviarMensagem(msg);
     CarregarSalvarVariaveisFlash();                             // Carrega ou salva variáveis na Flash
 
-    //rotina5Segundos();
+    imprimirBufferImedioMediaMovelPeriodico();
 }
 
 

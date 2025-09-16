@@ -9,41 +9,56 @@ private:
     float soma_;
     uint16_t quantidade_;
     float ultimaMedia_;
+    float maiorAmostra_;
+    float menorAmostra_;
+    const float epsilon_ = 1.0e-10f; // Pequeno valor para comparação
 
 public:
     MediaSimples(uint16_t capacidade)
-        : capacidade_(capacidade), soma_(0), quantidade_(0), ultimaMedia_(0) 
+        : capacidade_(capacidade), soma_(0), quantidade_(0), ultimaMedia_(0), maiorAmostra_(-epsilon_), menorAmostra_(epsilon_) 
     {}
 
     void adicionar(float valor) 
     {
+        if (valor > maiorAmostra_) 
+            maiorAmostra_ = valor;
+        if (valor < menorAmostra_) 
+            menorAmostra_ = valor;
         soma_ += valor;
         quantidade_++;
         if (quantidade_ == capacidade_) 
             ultimaMedia_ = soma_ / quantidade_;
     }
 
-    bool completa() const 
-    {
-        return quantidade_ >= capacidade_;
-    }
+    void resetMaiorAmostra() { maiorAmostra_ = -epsilon_; }
 
-    float obterMedia() const 
+    void resetMenorAmostra() { menorAmostra_ = epsilon_; }
+
+    float obterMaiorAmostra() const { return maiorAmostra_; }
+
+    float obterMenorAmostra() const { return menorAmostra_; }    
+
+    bool completa() const { return quantidade_ >= capacidade_; }
+
+    float obterMediaSimples() const 
     {
         if (quantidade_ == 0) 
             return 0.0f;
         return soma_ / quantidade_;
     }
 
-    float obterUltimaMedia() const 
+    float obterUltimaMediaSimples() const 
     {
         return ultimaMedia_;
     }
 
-    void zerar() 
+    void zerarMediaSimples() 
     {
         soma_ = 0;
         quantidade_ = 0;
+        ultimaMedia_ = 0;
+        maiorAmostra_ = -epsilon_;
+        menorAmostra_ = epsilon_;
     }
 };
 
@@ -56,6 +71,9 @@ private:
     uint16_t quantidade_;
     uint16_t indice_;
     float soma_;
+    float maiorMediaSimples_;
+    float menorMediaSimples_;
+    const float epsilon_ = 1.0e-10f; // Pequeno valor para comparação
 
 public:
     MediaMovel(uint16_t capacidade)
@@ -71,13 +89,21 @@ public:
         delete[] buffer_;
     }
 
-    void adicionar(float valor) {
-        if (quantidade_ < capacidade_) {
+    void adicionar(float valor) 
+    {
+        if (valor > maiorMediaSimples_) 
+            maiorMediaSimples_ = valor;
+        if (valor < menorMediaSimples_) 
+            menorMediaSimples_ = valor;
+        if (quantidade_ < capacidade_) 
+        {
             soma_ += valor;
             buffer_[indice_] = valor;
             indice_ = (indice_ + 1) % capacidade_;
             quantidade_++;
-        } else {
+        } 
+        else 
+        {
             soma_ -= buffer_[indice_];
             soma_ += valor;
             buffer_[indice_] = valor;
@@ -85,33 +111,39 @@ public:
         }
     }
 
-    float obterMedia() const 
+    void resetMaiorMediaSimples() { maiorMediaSimples_ = -epsilon_; }
+
+    void resetMenorMediaSimples() { menorMediaSimples_ = epsilon_; }
+
+    float obterMaiorMediaSimples() const { return maiorMediaSimples_; }
+
+    float obterMediaMovel() const 
     {
         if (quantidade_ == 0) 
             return 0.0f;
         return soma_ / quantidade_;
     }
 
-    void zerar() 
+    void zerarMediaMovel() 
     {
         for (uint16_t i = 0; i < capacidade_; i++) 
             buffer_[i] = 0.0f;
         soma_ = 0.0f;
         quantidade_ = 0;
         indice_ = 0;
+        maiorMediaSimples_ = -epsilon_;
+        menorMediaSimples_ = epsilon_;
     }
 
-    float obterValor(uint16_t indice) const 
-    {
-        if (indice >= quantidade_) 
-            return 0.0f; // fora do intervalo
-        uint16_t idxReal = (indice_ + capacidade_ - quantidade_ + indice) % capacidade_;
-        return buffer_[idxReal];
-    }
+    uint16_t obterDimensaoMediaMovel() const { return quantidade_; }
 
-    uint16_t obterQuantidade() const 
+    // Acesso ao buffer (índice 0 é o mais antigo)
+    float operator[](uint16_t index) const 
     {
-        return quantidade_;
+        if (index >= quantidade_) 
+            return 0.0f;
+        uint16_t realIndex = (indice_ + capacidade_ - quantidade_ + index) % capacidade_;
+        return buffer_[realIndex];
     }
 };
 
@@ -121,71 +153,71 @@ class MediaComposta
 private:
     MediaSimples* mediaSimples_;
     MediaMovel* mediaMovel_;
-    float maiorLeitura_;
+    float maiorMediaMovel_;
+    float menorMediaMovel_;
+    float epsilon_ = 1.0e-10f; // Pequeno valor para comparação
 
 public:
     MediaComposta(uint16_t qtdSimples, uint16_t qtdMovel)
-        : mediaSimples_(new MediaSimples(qtdSimples)), mediaMovel_(new MediaMovel(qtdMovel)), maiorLeitura_(0.0f) 
+        : mediaSimples_(new MediaSimples(qtdSimples)), mediaMovel_(new MediaMovel(qtdMovel)),
+          maiorMediaMovel_(-epsilon_), menorMediaMovel_(epsilon_)
     {}
 
     // Adiciona novo valor
     void adicionar(float valor) 
     {
         mediaSimples_->adicionar(valor);
-        if (valor > maiorLeitura_) 
-            maiorLeitura_ = valor;
 
         if (mediaSimples_->completa()) 
         {
-            float media = mediaSimples_->obterMedia();
+            float media = mediaSimples_->obterMediaSimples();
+            if (media > maiorMediaMovel_) 
+                maiorMediaMovel_ = media;
+            if (media < menorMediaMovel_) 
+                menorMediaMovel_ = media;
             mediaMovel_->adicionar(media);
-            mediaSimples_->zerar();
+            mediaSimples_->zerarMediaSimples();
         }
     }
 
-    // Última média simples
-    float obterMediaSimples() const 
-    {
-        return mediaSimples_->obterMedia();
-    }
+    // Dá acesso aos objetos internos (se necessário) 
+    MediaSimples obterObjetoMediaSimples() const { return *mediaSimples_; }
+    MediaMovel obterObjetoMediaMovel() const { return *mediaMovel_; }
 
     // Média móvel
-    float obterMediaMovel() const 
-    {
-        return mediaMovel_->obterMedia();
-    }
+    float obterMediaMovel() const { return mediaMovel_->obterMediaMovel(); }
+    float obterMaiorMediaMovel() const { return maiorMediaMovel_; }
+    float obterMenorMediaMovel() const { return menorMediaMovel_; }
+    void resetMaiorMediaMovel() { maiorMediaMovel_ = -epsilon_; }
+    void resetMenorMediaMovel() { menorMediaMovel_ = epsilon_; }
 
-    // Última média simples completa
-    float obterUltimaMediaSimples() const 
-    {
-        return mediaSimples_->obterUltimaMedia();
-    }
+    // Média simples
+    float obterUltimaMediaSimples() const { return mediaSimples_->obterUltimaMediaSimples(); }
+    float obterMaiorMediaSimples() const { return mediaSimples_->obterMaiorAmostra(); }
+    float obterMenorMediaSimples() const { return mediaSimples_->obterMenorAmostra(); }
+    void resetMaiorMediaSimples() { mediaSimples_->resetMaiorAmostra(); }
+    void resetMenorMediaSimples() { mediaSimples_->resetMenorAmostra(); }
 
-    // Maior valor inserido
-    float obterMaiorLeitura() const 
-    {
-        return maiorLeitura_;
-    }
+    // Amostras limites
+    float obterMaiorAmostra() const { return mediaSimples_->obterMaiorAmostra(); }
+    float obterMenorAmostra() const { return mediaSimples_->obterMenorAmostra(); }
+    void resetMaiorAmostra() { mediaSimples_->resetMaiorAmostra(); }
+    void resetMenorAmostra() { mediaSimples_->resetMenorAmostra(); }
 
     // Zera tudo
-    void zerar() 
+    void zerarMediaComposta() 
     {
-        mediaSimples_->zerar();
-        mediaMovel_->zerar();
-        maiorLeitura_ = 0.0f;
+        mediaSimples_->zerarMediaSimples();
+        mediaMovel_->zerarMediaMovel();
+        maiorMediaMovel_ = 0.0f;
+        menorMediaMovel_ = 0.0f;
     }
 
-    // Reseta apenas o maior leitura
-    void resetMaiorLeitura(float valorReset = 0.0f) 
+    void imprimirSerialBufferMediaMovel() const 
     {
-        maiorLeitura_ = valorReset;
-    }
-
-    void imprimirMediaMovel() const 
-    {
-        uint16_t qtd = mediaMovel_->obterQuantidade();
+        uint16_t qtd = mediaMovel_->obterDimensaoMediaMovel();
         Serial2.println("qtd: " + String(qtd));
         for (uint16_t i = 0; i < qtd; i++)
-            Serial2.print(String(i) + ": " + String(mediaMovel_->obterValor(i), 4) + " ");
+            Serial2.print(String(i) + ": " + String((*mediaMovel_)[i], 4) + " ");
     }
 };

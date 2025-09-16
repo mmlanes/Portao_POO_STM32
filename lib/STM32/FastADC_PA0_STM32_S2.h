@@ -164,8 +164,9 @@ public:
     // Métodos de acesso
     uint16_t obterValorNuloAdc() { return valorNuloAdc_; }
     float obterMediaMovel() { return mediaComposta_->obterMediaMovel(); }
-    float obterUltimaLeituraMedia() { return mediaComposta_->obterUltimaMediaSimples(); }
-    float obterValorMaximo() { return mediaComposta_->obterMaiorLeitura(); }
+    float obterUltimaMediaSimples() { return mediaComposta_->obterUltimaMediaSimples(); }
+    float obterMaiorMediaSimples() { return mediaComposta_->obterMaiorMediaSimples(); }
+    float obterMaiorAmostra() { return mediaComposta_->obterMaiorAmostra(); }
     void recalibrarValorNuloAdc(uint16_t totalLeituras = 100) { calcularValorNuloAdc(totalLeituras); }
 
     void anexarInterrupcao()
@@ -195,16 +196,18 @@ public:
     void imprimirMediaMovel()
     {
         if (mediaComposta_)
-            mediaComposta_->imprimirMediaMovel();
+            mediaComposta_->imprimirSerialBufferMediaMovel();
     }
 
-    void monitorar()
+    void atualizarImedioIpico()
     {
         if (mediaComposta_)
         {
             float media = mediaComposta_->obterMediaMovel();
             iMedio_.definirValor(media);
-            float pico = mediaComposta_->obterUltimaMediaSimples();
+            //float pico = mediaComposta_->obterMaiorMediaMovel();
+            float pico = mediaComposta_->obterMaiorMediaSimples();
+            //float pico = mediaComposta_->obterMaiorAmostra();
             iPico_.definirValor(pico);
         }
     }

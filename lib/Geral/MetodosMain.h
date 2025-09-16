@@ -86,12 +86,12 @@ void CarregarVariaveisFlash(void)
     }
 }
 
-void rotina5Segundos() 
+void imprimirBufferImedioMediaMovelPeriodico(uint32_t intervaloMs = 5000) 
 {
     static unsigned long ultimoTempo = 0;
     unsigned long agora = millis();
 
-    if (agora - ultimoTempo >= 5000) 
+    if (agora - ultimoTempo >= intervaloMs) 
     {
         ultimoTempo = agora;
 

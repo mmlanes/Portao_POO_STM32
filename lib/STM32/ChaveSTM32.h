@@ -29,7 +29,7 @@ public:
     /// Construtor
     ChaveSTM32(uint8_t pino, bool estadoAtivo = LOW) 
         : _pino(pino), _estadoAtivo(estadoAtivo), _estadoLogado(false),
-          _ultimoLeitura(false), _inicioAtivo(0), _ultimoDebounce(0)
+          _ultimoLeitura(estadoAtivo), _inicioAtivo(0), _ultimoDebounce(0)
     {
         pinMode(_pino, INPUT_PULLUP);
         

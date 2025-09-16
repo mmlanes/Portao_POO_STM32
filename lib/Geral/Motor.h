@@ -168,6 +168,9 @@ public:
         //atualizacaoPeriodicaImedio(tempoAtualizacaoAutomaticaImedioMs_);
         atualizacaoPeriodicaImedio(3000);
 
+        pwm_.atualizaRampa();
+        adc_->atualizarImedioIpico();
+
          // Transições de estado
         if (estadoAtual_ == Estado::Parando && estadoAlvo_ == Estado::Parado )
         {   // Vai de parando para parado
