@@ -9,7 +9,7 @@
 #include "ChaveSTM32.h"
 #include "EncoderSTM32.h"
 #include "PWM_PB1_STM32_S.h"
-#include "FastADC_PA0_STM32_S2.h"
+#include "FastADC_PA0_STM32_S.h"
 #include "Variavel.h"
 #include "ModosOperacao.h"
 #include "ChavesCombinadas.h"
@@ -107,7 +107,7 @@ MensagemLCD mSalvarFlash(&modoSalvarConfigFlash, "$modo$", "$salvarConfigFlash$"
 MensagemLCD mCarregarFlash(&modoCarregarConfigFlash, "$modo$", "$carregarConfigFlash$", "Bts(A+F) 5s carreg", trocarTela);
 
 HardwareTimer timer2(TIM2);  // criado fora da classe
-FastADC_PA0_STM32_S2* adc = nullptr;
+FastADC_PA0_STM32_S* adc = nullptr;
 
 auto& pwm = PWM_PB1_STM32_S::getInstance(freqPWM, dPWM, dPWMMax, acelPWM); // 5000 Hz e função de leitura do ADC
 

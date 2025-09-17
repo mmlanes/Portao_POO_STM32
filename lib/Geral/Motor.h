@@ -2,7 +2,7 @@
 
 #include <Arduino.h>
 #include "Variavel.h"
-#include "FastADC_PA0_STM32_S2.h"
+#include "FastADC_PA0_STM32_S.h"
 
 class Motor
 {
@@ -13,7 +13,7 @@ private:
     uint8_t pinKD_;
     uint8_t pinKE_;
     PWM_PB1_STM32_S& pwm_;
-    FastADC_PA0_STM32_S2* adc_;
+    FastADC_PA0_STM32_S* adc_;
     uint16_t tempoEsperaRele_;
     uint16_t tempoAtualizacaoAutomaticaImedioMs_;
     uint8_t dpwmAlvo_;
@@ -69,7 +69,7 @@ public:
     Motor(uint8_t pinKD, 
           uint8_t pinKE, 
           PWM_PB1_STM32_S& pwm, 
-          FastADC_PA0_STM32_S2* adc = nullptr,
+          FastADC_PA0_STM32_S* adc = nullptr,
           uint16_t tempoEsperaAcionarReles_ms = 1000,
           uint16_t tempoAtualizacaoAutomaticaImedio_ms = 500)
         : pinKD_(pinKD), 

@@ -9,7 +9,7 @@
 #include "ChaveSTM32.h"
 #include "EncoderSTM32.h"
 #include "PWM_PB1_STM32_S.h"
-#include "FastADC_PA0_STM32_S2.h"
+#include "FastADC_PA0_STM32_S.h"
 #include "Variavel.h"
 #include "ModosOperacao.h"
 #include "ChavesCombinadas.h"

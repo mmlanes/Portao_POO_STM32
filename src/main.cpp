@@ -7,7 +7,7 @@
 #include "EncoderSTM32.h"
 #include "PWM_PB1_STM32_S.h"
 //#include "FastADC_PA0_STM32_S.h"
-#include "FastADC_PA0_STM32_S2.h"
+#include "FastADC_PA0_STM32_S.h"
 #include "Variavel.h"
 #include "ModosOperacao.h"
 #include "ChavesCombinadas.h"
@@ -36,7 +36,7 @@ void setup()
     delay(200);
     pwm.defineFrequencia(freqPWM.obterValor());
     uint32_t periodoPWMUs = 1000000 / freqPWM.obterValor();
-    adc = FastADC_PA0_STM32_S2::PeriodoTotal(iMedio, iPico, 10, periodoPWMUs, 100, &timer2);
+    adc = FastADC_PA0_STM32_S::PeriodoTotal(iMedio, iPico, 10, periodoPWMUs, 100, &timer2);
     pinMode(PC13, OUTPUT);
     digitalWrite(PC13, LOW); // LED apagado,
 }

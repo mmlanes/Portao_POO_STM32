@@ -1,31 +1,86 @@
 #pragma once
 
 #include <Arduino.h>
-#include "Variavel.h"
+#include "MediaComposta.h"
 
 class FastADC_PA0_STM32_S
 {
 private:
-    static const uint8_t dimensaoAmostrasMediaMovel_ = 100;
-    static uint16_t vetorADC_[dimensaoAmostrasMediaMovel_];
-    static uint16_t valorNuloAdc_;
+    Variavel<float>& iMedio_;
+    Variavel<float>& iPico_;
+    MediaComposta* mediaComposta_;
+    uint32_t periodoAmostragemUs_;
+    uint32_t periodoTotalUs_;
+    uint16_t amostrasPorPeriodo_;
+    uint16_t tamanhoMediaMovel_;
+    uint16_t valorNuloAdc_;
+    HardwareTimer* timer_;
+    static FastADC_PA0_STM32_S* instance_;
 
-    FastADC_PA0_STM32_S() 
-    { 
-        setupAdcPa0Fast();  // executa setup automaticamente
-        calcularValorNuloAdc(); // calcula valor nulo automaticamente
+    // Construtor privado
+    FastADC_PA0_STM32_S(Variavel<float>& iMedio,
+                         Variavel<float>& iPico,       
+                         MediaComposta* mediaComposta, 
+                         uint32_t periodoAmostragemUs, 
+                         uint32_t periodoTotalUs,
+                         uint16_t amostrasPorPeriodo,
+                         uint16_t tamanhoMediaMovel,
+                         HardwareTimer* timer = nullptr)
+        : iMedio_(iMedio),
+          iPico_(iPico),
+          mediaComposta_(nullptr),
+          periodoAmostragemUs_(periodoAmostragemUs),
+          periodoTotalUs_(periodoTotalUs),
+          amostrasPorPeriodo_(amostrasPorPeriodo),
+          tamanhoMediaMovel_(tamanhoMediaMovel),
+          valorNuloAdc_(0),
+          timer_(timer)
+    {
+        instance_ = this;
+        mediaComposta_ = new MediaComposta(amostrasPorPeriodo, tamanhoMediaMovel);
+        setupAdcPa0Fast();
+        calcularValorNuloAdc();
+        configuraTimer(periodoAmostragemUs_);
+        anexarInterrupcao();
     }
 
-    static uint16_t leituraAdc_()
+    ~FastADC_PA0_STM32_S()
+    {
+        desanexarInterrupcao();       // Evita que ISR acesse ponteiros deletados
+        if (mediaComposta_)
+        {
+            delete mediaComposta_;    // Libera MediaComposta alocado dinamicamente
+            mediaComposta_ = nullptr;
+        }
+        instance_ = nullptr;
+    }
+
+    // ISR do timer
+    static void isrTimer_()
+    {
+        GPIOC->BSRR = (1 << 13);
+        if (instance_ && instance_->mediaComposta_)
+            instance_->mediaComposta_->adicionar((float)instance_->leituraAdc_());
+        GPIOC->BSRR = (1 << (13 + 16));
+    }
+
+    void configuraTimer(uint32_t periodoUs)
+    {
+        if (timer_)
+        {
+            timer_->setOverflow(periodoUs, MICROSEC_FORMAT);
+            timer_->resume();
+        }
+    }
+
+    uint16_t leituraAdc_()
     {
         ADC1->CR2 &= ~ADC_CR2_CONT;
         ADC1->CR2 &= ~ADC_CR2_EXTTRIG;
-
         ADC1->SQR3 = 0;
         ADC1->CR2 |= ADC_CR2_ADON;
         ADC1->CR2 |= ADC_CR2_ADON;
         while (!(ADC1->SR & ADC_SR_EOC));
-
         return ADC1->DR;
     }
 
@@ -35,23 +90,20 @@ private:
         for (uint16_t i = 0; i < totalLeituras; i++)
         {
             soma += leituraAdc_();
-            delay(1);
+            delay(10);
         }
-        valorNuloAdc_ = (float)soma / (float)totalLeituras;
-        Serial2.println("Valor nulo ADC recalibrado: " + String(valorNuloAdc_));
+        valorNuloAdc_ = (uint16_t)(soma / totalLeituras);
+        Serial2.println("ADC0: " + String(valorNuloAdc_));
     }
 
-    void setupAdcPa0Fast(void)
+    void setupAdcPa0Fast()
     {
-        pinMode(PA0, INPUT_ANALOG);  // Configura PA0 como entrada analógica
-        RCC->APB2ENR |= RCC_APB2ENR_ADC1EN;  // Habilita clock do ADC1
-        // Reseta ADC e prepara
+        pinMode(PA0, INPUT_ANALOG);
+        RCC->APB2ENR |= RCC_APB2ENR_ADC1EN;
         ADC1->CR2 = 0;
         ADC1->SQR3 = 0;
-        // Liga ADC
         ADC1->CR2 |= ADC_CR2_ADON;
-        delay(1);  // Espera estabilizar
-        // Calibração recomendada
+        delay(1);
         ADC1->CR2 |= ADC_CR2_RSTCAL;
         while (ADC1->CR2 & ADC_CR2_RSTCAL);
         ADC1->CR2 |= ADC_CR2_CAL;
@@ -59,38 +111,107 @@ private:
     }
 
 public:
-    // 🔹 Método para obter a única instância
+    FastADC_PA0_STM32_S(const FastADC_PA0_STM32_S&) = delete;
+    FastADC_PA0_STM32_S& operator=(const FastADC_PA0_STM32_S&) = delete;
+
+    // Factory singleton usando pontos por ciclo
+    static FastADC_PA0_STM32_S* PontosPorCiclo(Variavel<float>& iMedio,
+                                                Variavel<float>& iPico,
+                                                uint32_t periodoAmostragemUs,
+                                                uint16_t amostrasPorPeriodo, 
+                                                uint16_t tamanhoMediaMovel = 100, 
+                                                HardwareTimer* timer = nullptr)
+    {
+        if (!instance_)
+        {
+            uint32_t periodoTotalUs = periodoAmostragemUs * amostrasPorPeriodo;
+            instance_ = new FastADC_PA0_STM32_S(iMedio, iPico, nullptr, periodoAmostragemUs, periodoTotalUs, amostrasPorPeriodo, tamanhoMediaMovel, timer);
+        }
+        return instance_;
+    }
+
+    // Factory singleton usando período total
+    static FastADC_PA0_STM32_S* PeriodoTotal(Variavel<float>& iMedio,
+                                              Variavel<float>& iPico,
+                                              uint32_t periodoAmostragemUs,
+                                              uint32_t periodoTotalUs, 
+                                              uint16_t tamanhoMediaMovel = 100, 
+                                              HardwareTimer* timer = nullptr)
+    {
+        if (!instance_)
+        {
+            uint16_t amostrasPorPeriodo = periodoTotalUs / periodoAmostragemUs;
+            instance_ = new FastADC_PA0_STM32_S(iMedio, iPico, nullptr, periodoAmostragemUs, periodoTotalUs, amostrasPorPeriodo, tamanhoMediaMovel, timer);
+        }
+        return instance_;
+    }
+
     static FastADC_PA0_STM32_S& getInstance()
     {
-        static FastADC_PA0_STM32_S instance;
-        return instance;
+        return *instance_;
     }
 
-    static void leituraSincronizadaPWM(void)
+    // Destruir singleton
+    static void destruirSingleton()
     {
-        static uint8_t indiceCircular_ = 0;
-        // Leitura ADC
-        uint16_t leitura = leituraAdc_();
-        // Sobrescreve o elemento mais antigo no vetor
-        vetorADC_[indiceCircular_] = leitura;
-        // Atualiza o índice circular
-        indiceCircular_ = (indiceCircular_ + 1) % dimensaoAmostrasMediaMovel_;
+        if (instance_)
+        {
+            delete instance_;
+            instance_ = nullptr;
+        }
     }
 
-    int16_t obterGrandezaMedia(void)
-    {
-        uint32_t soma = 0;
-        for (uint8_t i = 0; i < dimensaoAmostrasMediaMovel_; i++)
-            soma += vetorADC_[i];
-        uint16_t media = soma / dimensaoAmostrasMediaMovel_;
-        media = media - valorNuloAdc_; // Remove valor nulo
-        return media;
-    }
-
-    uint16_t obterValorNuloAdc(void) { return valorNuloAdc_; }
-
+    // Métodos de acesso
+    uint16_t obterValorNuloAdc() { return valorNuloAdc_; }
+    float obterMediaMovel() { return mediaComposta_->obterMediaMovel(); }
+    float obterUltimaMediaSimples() { return mediaComposta_->obterUltimaMediaSimples(); }
+    float obterMaiorMediaSimples() { return mediaComposta_->obterMaiorMediaSimples(); }
+    float obterMaiorAmostra() { return mediaComposta_->obterMaiorAmostra(); }
     void recalibrarValorNuloAdc(uint16_t totalLeituras = 100) { calcularValorNuloAdc(totalLeituras); }
+
+    void anexarInterrupcao()
+    {
+        if (timer_)
+            timer_->attachInterrupt(isrTimer_);
+    }
+
+    void desanexarInterrupcao()
+    {
+        if (timer_)
+            timer_->detachInterrupt();
+    }
+
+    void pausarTimer()
+    {
+        if (timer_)
+            timer_->pause();
+    }
+
+    void resumirTimer()
+    {
+        if (timer_)
+            timer_->resume();
+    }
+
+    void imprimirMediaMovel()
+    {
+        if (mediaComposta_)
+            mediaComposta_->imprimirSerialBufferMediaMovel();
+    }
+
+    void atualizarImedioIpico()
+    {
+        if (mediaComposta_)
+        {
+            float media = mediaComposta_->obterMediaMovel();
+            iMedio_.definirValor(media);
+            //float pico = mediaComposta_->obterMaiorMediaMovel();
+            float pico = mediaComposta_->obterMaiorMediaSimples();
+            //float pico = mediaComposta_->obterMaiorAmostra();
+            iPico_.definirValor(pico);
+        }
+    }
 };
 
-uint16_t FastADC_PA0_STM32_S::vetorADC_[dimensaoAmostrasMediaMovel_] = {0};
-uint16_t FastADC_PA0_STM32_S::valorNuloAdc_ = 0;
+// Inicialização do singleton
+FastADC_PA0_STM32_S* FastADC_PA0_STM32_S::instance_ = nullptr;
