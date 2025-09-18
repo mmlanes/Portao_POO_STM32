@@ -6,7 +6,6 @@
 #include "ChaveSTM32.h"
 #include "EncoderSTM32.h"
 #include "PWM_PB1_STM32_S.h"
-//#include "FastADC_PA0_STM32_S.h"
 #include "FastADC_PA0_STM32_S.h"
 #include "Variavel.h"
 #include "ModosOperacao.h"
@@ -36,7 +35,7 @@ void setup()
     delay(200);
     pwm.defineFrequencia(freqPWM.obterValor());
     uint32_t periodoPWMUs = 1000000 / freqPWM.obterValor();
-    adc = FastADC_PA0_STM32_S::PeriodoTotal(iMedio, iPico, 10, periodoPWMUs, 100, &timer2);
+    adc = FastADC_PA0_STM32_S::PeriodoTotal(iMedio, iPico, 20, periodoPWMUs, 100, &timer2);
     pinMode(PC13, OUTPUT);
     digitalWrite(PC13, LOW); // LED apagado,
 }
@@ -52,18 +51,24 @@ void loop()
     ChaveSTM32::atualizarTodas();                               // Atualiza todas as chaves
     motor.monitorar();                                          // Atualiza o estado do motor
     portao.monitorar();                                         // Atualiza o portão
-    protecao.monitorar();                                       // Monitora as proteções
+    //protecao.monitorar();                                       // Monitora as proteções
     controladorPortao.monitorar();                              // Monitora o controlador do portão
 
     //AcoesChaves::atuarTodas(ModosOperacao::modoAtual());        // Atualiza as ações das chaves
     AcoesChavesCombinadas::atuarTodas(ModosOperacao::obterModoAtual());
 
-    //iMedio.definirValor(adc.obterGrandezaMediaPeriodica(500));  // Atualiza a média do ADC
+    AtualizaImedioIpico();                                 // Atualiza Imedio e Ipico periodicamente
+    monitorarProtecao();                                   // Monitora as proteções
+
+    //Serial2.println("Im=" + String(Im, 3) + " Ip=" + String(Ip, 3));
+
     for (auto* msg : MensagemLCD::todas())                      // Envia mensagens para o LCD
         m.enviarMensagem(msg);
     CarregarSalvarVariaveisFlash();                             // Carrega ou salva variáveis na Flash
 
-    imprimirBufferImedioMediaMovelPeriodico();
+    //imprimirBufferImedioMediaMovelPeriodico();
+
+    //delay(500);
 }
 
 

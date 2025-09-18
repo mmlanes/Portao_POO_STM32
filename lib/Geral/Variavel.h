@@ -33,7 +33,8 @@ public:
         _todas.push_back(v);
     }
 
-    static void remover(VariavelBase* v) {
+    static void remover(VariavelBase* v) 
+    {
         _todas.erase(std::remove(_todas.begin(), _todas.end(), v), _todas.end());
     }
 
@@ -72,7 +73,8 @@ std::vector<VariavelBase*> VariavelBase::_todas;
 // Template genérico → aritméticos
 // =========================
 template<typename T>
-class Variavel : public VariavelBase {
+class Variavel : public VariavelBase 
+{
 private:
     String _nome;
     T _valor;
@@ -90,11 +92,13 @@ public:
         VariavelBase::registrar(this);
     }
 
-    ~Variavel() {
+    ~Variavel() 
+    {
         VariavelBase::remover(this);
     }
 
-    void incrementar(uint8_t acelerador = 1) {
+    void incrementar(uint8_t acelerador = 1) 
+    {
         T incremento = acelerador * _passo;
         if (_valor + incremento <= _max)
             _valor += incremento;
@@ -102,7 +106,8 @@ public:
             _valor += _passo;
     }
 
-    void decrementar(uint8_t acelerador = 1) {
+    void decrementar(uint8_t acelerador = 1) 
+    {
         T incremento = acelerador * _passo;
         if (_valor - incremento >= _min)
             _valor -= incremento;
@@ -112,7 +117,8 @@ public:
 
     T obterValor() const { return _valor; }
 
-    void definirValor(T v) {
+    void definirValor(T v) 
+    {
         if (v < _min) v = _min;
         if (v > _max) v = _max;
         _valor = v;
@@ -124,35 +130,78 @@ public:
     String obterNome() const override { return _nome; }
     bool ehPersistente() const override { return _persistente; }
 
-    String paraString() const override {
-        if (std::is_same<T, float>::value) {
-            if (_valor == 0.0f) return "0.00e+0";
-            if (_valor >= 0.1f && _valor < 100.0f) return String(_valor, 1);
+    // String paraStringCientifico() const override {
+    //     if (std::is_same<T, float>::value) {
+    //         if (_valor == 0.0f) return "0.00e+0";
+    //         if (_valor >= 0.1f && _valor < 100.0f) return String(_valor, 1);
+    //         float val = _valor;
+    //         int expoente = 0;
+    //         bool negativo = false;
+    //         if (val < 0.0f) {negativo = true; val = -val;}
+    //         if (val >= 10.0f)
+    //             while (val >= 10.0f) {val /= 10.0f; expoente++;}
+    //         else if (val < 1.0f)
+    //             while (val < 1.0f) {val *= 10.0f; expoente--;}
+    //         if (negativo) val = -val;
+    //         char buf[32];
+    //         int pos = 0;
+    //         if (val < 0.0f) {buf[pos++] = '-'; val = -val;}
+    //         int intPart = (int)val;
+    //         int fracPart = (int)((val - intPart) * 100);
+    //         pos += sprintf(buf + pos, "%d.%02d", intPart, fracPart);
+    //         if (expoente != 0)
+    //             pos += sprintf(buf + pos, "e%+d", expoente);
+    //         return String(buf);
+    //     }
+    //     else {
+    //         return String(_valor);
+    //     }
+    // }
+
+    String paraString() const override 
+    {
+        if (std::is_same<T, float>::value) 
+        {
             float val = _valor;
-            int expoente = 0;
-            bool negativo = false;
-            if (val < 0.0f) {negativo = true; val = -val;}
-            if (val >= 10.0f)
-                while (val >= 10.0f) {val /= 10.0f; expoente++;}
-            else if (val < 1.0f)
-                while (val < 1.0f) {val *= 10.0f; expoente--;}
-            if (negativo) val = -val;
-            char buf[32];
-            int pos = 0;
-            if (val < 0.0f) {buf[pos++] = '-'; val = -val;}
-            int intPart = (int)val;
-            int fracPart = (int)((val - intPart) * 100);
-            pos += sprintf(buf + pos, "%d.%02d", intPart, fracPart);
-            if (expoente != 0)
-                pos += sprintf(buf + pos, "e%+d", expoente);
-            return String(buf);
-        }
-        else {
+            String sign = (val < 0.0f) ? "-" : "";
+            val = fabs(val);
+
+            if (val == 0.0f) return "0.0";
+
+            struct Prefix { float threshold; const char* suffix; int decimals; };
+            const Prefix prefixes[] = {
+                {1.0e6f, "M", 0},
+                {1.0e3f, "k", 0},
+                {1.0f, "", 1},
+                {1.0e-3f, "m", 1},
+                {1.0e-6f, "u", 1}
+            };
+
+            for (const auto& p : prefixes)
+            {
+                if (val >= p.threshold) 
+                {
+                    float displayVal = val;
+                    if (p.suffix[0] == 'k') displayVal /= 1.0e3f;
+                    if (p.suffix[0] == 'M') displayVal /= 1.0e6f;
+                    if (p.suffix[0] == 'm') displayVal *= 1000.0f;
+                    if (p.suffix[0] == 'u') displayVal *= 1000000.0f;
+
+                    return sign + String(displayVal, p.decimals) + p.suffix;
+                }
+            }
+
+            // Para valores menores que 1u
+            return sign + String(val, 3);
+        } 
+        else 
+        {
             return String(_valor);
         }
     }
 
-    TipoVariavel tipo() const override {
+    TipoVariavel tipo() const override 
+    {
         if (std::is_same<T, int32_t>::value) return TipoVariavel::INT32;
         else if (std::is_same<T, uint32_t>::value) return TipoVariavel::UINT32;
         else if (std::is_same<T, uint16_t>::value) return TipoVariavel::UINT16;
@@ -165,7 +214,8 @@ public:
 // Especialização para String
 // =========================
 template<>
-class Variavel<String> : public VariavelBase {
+class Variavel<String> : public VariavelBase 
+{
 private:
     String _nome;
     String _valor;
@@ -178,7 +228,8 @@ public:
         VariavelBase::registrar(this);
     }
 
-    ~Variavel() {
+    ~Variavel() 
+    {
         VariavelBase::remover(this);
     }
 
@@ -200,7 +251,8 @@ public:
 // Especialização para bool
 // =========================
 template<>
-class Variavel<bool> : public VariavelBase {
+class Variavel<bool> : public VariavelBase 
+{
 private:
     String _nome;
     bool _valor;
@@ -213,7 +265,8 @@ public:
         VariavelBase::registrar(this);
     }
 
-    ~Variavel() {
+    ~Variavel() 
+    {
         VariavelBase::remover(this);
     }
 

@@ -40,10 +40,11 @@ public:
     void monitorar()
     {
         // Proteção por sobrecorrente
-        if (usarProtecaoEncoderParado_.obterValor())
+        if (usarProtecaoSobrecorrente_.obterValor())
         {
-            if (portao_.obterMotor().obterUltimoImedio() >= iProtecao_.obterValor())
+            if (portao_.obterMotor().obterImedio() >= iProtecao_.obterValor())
                 protecaoSobrecorrenteAtuada_.definirValor(true);
+                
         }
 
         // Proteção por encoder parado

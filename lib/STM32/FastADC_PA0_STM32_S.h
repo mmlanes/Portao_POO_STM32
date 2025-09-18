@@ -204,11 +204,11 @@ public:
         if (mediaComposta_)
         {
             float media = mediaComposta_->obterMediaMovel();
-            iMedio_.definirValor(media);
-            //float pico = mediaComposta_->obterMaiorMediaMovel();
-            float pico = mediaComposta_->obterMaiorMediaSimples();
+            iMedio_.definirValor(0);
+            float pico = mediaComposta_->obterMaiorMediaMovel();
+            //float pico = mediaComposta_->obterMaiorMediaSimples();
             //float pico = mediaComposta_->obterMaiorAmostra();
-            iPico_.definirValor(pico);
+            //iPico_.definirValor(0.0f);
         }
     }
 };

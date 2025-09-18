@@ -74,6 +74,10 @@ void CarregarVariaveisFlash(void)
                 static_cast<Variavel<uint16_t>*>(v)->definirValor((uint16_t)valorStr.toInt());
                 break;
             case TipoVariavel::FLOAT:
+                valorStr.replace("m", "e-3"); // permite usar 'm' como sufixo de mili
+                valorStr.replace("u", "e-6"); // permite usar 'u' como sufixo de micro
+                valorStr.replace("k", "e+3"); // permite usar 'k' como sufixo de kilo
+                valorStr.replace("M", "e+6"); // permite usar 'M' como sufixo de mega
                 static_cast<Variavel<float>*>(v)->definirValor(valorStr.toFloat());
                 break;
             case TipoVariavel::BOOL:
@@ -103,3 +107,46 @@ void imprimirBufferImedioMediaMovelPeriodico(uint32_t intervaloMs = 5000)
     }
 }
 
+void AtualizaImedioIpico(void)
+{
+    static unsigned long ultimoTempo = 0;
+    unsigned long agora = millis();
+    if (agora - ultimoTempo < 1000) return; // Atualiza no máximo a cada 1000ms
+    ultimoTempo = agora;
+
+    // ADC Nulo
+    float ADC0 = adc->obterValorNuloAdc();
+    // Constante de ajuste do ADC
+    float AdjADC = adjADC.obterValor();
+    // Cálculo de Imedio 
+    float mediaADC = adc->obterMediaMovel();
+    float Im = (mediaADC - ADC0)  * AdjADC;
+    if (Im < 0.1) Im = 0;
+    iMedio.definirValor(Im);  // Atualiza a média do ADC
+    // Cálculo de Ipico 
+    float maiorADC = adc->obterMaiorMediaSimples();
+    //float maiorADC = adc->obterMaiorMediaSimples();
+    //float maiorADC = adc->obterMaiorAmostra();
+    float Ip = (maiorADC - ADC0)  * AdjADC;
+    if (Ip < 0.1) Ip = 0;
+    iPico.definirValor(Ip);  // Atualiza o pico do ADC
+}
+
+void monitorarProtecao()
+{
+    // Proteção por sobrecorrente
+    if (protecaoSobrecorrente.obterValor())
+    {
+        if (iMedio.obterValor() >= iProt.obterValor())
+            protecaoSobrecorrenteAtuada.definirValor(true);
+    }
+
+    // Proteção por encoder parado
+    if (protecaoEncoderParado.obterValor())
+    {
+        if (encAB.estaParado())
+            protecaoEncoderParadoAtuada.definirValor(true);
+        else
+            protecaoEncoderParadoAtuada.definirValor(false);
+    }
+}

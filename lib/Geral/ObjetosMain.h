@@ -87,7 +87,7 @@ ModosOperacao modoCarregarConfigFlash("Carrega config Flash");
 String trocarTela = "Tela P+A >> e P+F <<";
 String incDecBool = "Valor: BtA=1 e BtF=0";
 String incDecNum = "Valor: BtA=+ e BtF=-";
-MensagemLCD mNormal(&modoNormal, "$modo$ Im=$iMedio$/Ipk=$iPico$", "D=$dPWM$ AB=$encPos$ PEI=$protEncParadoAtuada$$protSobrecorrenteAtuada$", "PP=$posPortao$ OP=$operPortao$ EA=$encAtivo$", trocarTela);
+MensagemLCD mNormal(&modoNormal, "$modo$ Im=$iMedio$", "D=$dPWM$ AB=$encPos$ PEI=$protEncParadoAtuada$$protSobrecorrenteAtuada$", "PP=$posPortao$ OP=$operPortao$ EA=$encAtivo$", trocarTela);
 //MensagemLCD mNormal(&modoNormal, "$modo$", "D=$dPWM$ AB=$encPos$ Im=$iMedio$A", "PP.OP.RA.PEI=$posPortao$.$operPortao$.$encAtivo$.$protEncParado$$protSobrecorrente$", trocarTela);
 MensagemLCD mProtEncParado(&modoProtEncParadoAtuado, "$modo$", "ativada = $protEncParadoAtuada$", "(atua se Enc Ativo)", trocarTela);
 MensagemLCD mProtSobrecorrente(&modoProtSobrecorrenteAtuado, "$modo$", "ativada = $protSobrecorrenteAtuada$", " ", trocarTela);

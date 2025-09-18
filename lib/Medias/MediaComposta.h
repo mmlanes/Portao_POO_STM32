@@ -218,6 +218,7 @@ public:
         uint16_t qtd = mediaMovel_->obterDimensaoMediaMovel();
         Serial2.println("qtd: " + String(qtd));
         for (uint16_t i = 0; i < qtd; i++)
-            Serial2.print(String(i) + ": " + String((*mediaMovel_)[i], 4) + " ");
+            Serial2.print(String((*mediaMovel_)[i], 4) + " ");
+            //Serial2.print(String(i) + ": " + String((*mediaMovel_)[i], 4) + " ");
     }
 };

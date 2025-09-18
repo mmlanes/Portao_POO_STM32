@@ -147,14 +147,9 @@ public:
 
     float obterkADCAjusteValorReal(void) { return 0; }
 
-    float obterUltimoImedio(void)
+    float obterImedio(void)
     {
-        return 0;
-    }
-
-    float obterImedio(float valorMinino = 0.1f)
-    {
-        return 0;
+        return adc_->obterMediaMovel();
     }
 
     void atualizacaoPeriodicaImedio(uint16_t intervaloMs)
@@ -169,7 +164,8 @@ public:
         atualizacaoPeriodicaImedio(3000);
 
         pwm_.atualizaRampa();
-        adc_->atualizarImedioIpico();
+
+        //adc_->atualizarImedioIpico();
 
          // Transições de estado
         if (estadoAtual_ == Estado::Parando && estadoAlvo_ == Estado::Parado )
