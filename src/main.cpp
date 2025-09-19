@@ -60,8 +60,6 @@ void loop()
     AtualizaImedioIpico();                                 // Atualiza Imedio e Ipico periodicamente
     monitorarProtecao();                                   // Monitora as proteções
 
-    //Serial2.println("Im=" + String(Im, 3) + " Ip=" + String(Ip, 3));
-
     for (auto* msg : MensagemLCD::todas())                      // Envia mensagens para o LCD
         m.enviarMensagem(msg);
     CarregarSalvarVariaveisFlash();                             // Carrega ou salva variáveis na Flash

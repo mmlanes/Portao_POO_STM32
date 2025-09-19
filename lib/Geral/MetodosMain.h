@@ -25,6 +25,7 @@
 
 void CarregarVariaveisFlash(void);
 void CarregarSalvarVariaveisFlash(void);
+void ResetManual();
 
 void CarregarSalvarVariaveisFlash(void)
 {
@@ -130,6 +131,8 @@ void AtualizaImedioIpico(void)
     float Ip = (maiorADC - ADC0)  * AdjADC;
     if (Ip < 0.1) Ip = 0;
     iPico.definirValor(Ip);  // Atualiza o pico do ADC
+
+    //Serial2.println("Im=" + String(Im, 3) + " Ip=" + String(Ip, 3));
 }
 
 void monitorarProtecao()
@@ -149,4 +152,9 @@ void monitorarProtecao()
         else
             protecaoEncoderParadoAtuada.definirValor(false);
     }
+}
+
+void ResetManual()
+{
+    NVIC_SystemReset();
 }

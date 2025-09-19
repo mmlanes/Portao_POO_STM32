@@ -22,6 +22,9 @@
 #include "Protecao.h"
 
 
+void ResetManual();  // Declaração adiantada
+
+
 HardwareSerial Serial2(PA3, PA2); // RX, TX
 
 Mensagem m(Serial2, 115200, 20, 4); 
@@ -87,7 +90,7 @@ ModosOperacao modoCarregarConfigFlash("Carrega config Flash");
 String trocarTela = "Tela P+A >> e P+F <<";
 String incDecBool = "Valor: BtA=1 e BtF=0";
 String incDecNum = "Valor: BtA=+ e BtF=-";
-MensagemLCD mNormal(&modoNormal, "$modo$ Im=$iMedio$", "D=$dPWM$ AB=$encPos$ PEI=$protEncParadoAtuada$$protSobrecorrenteAtuada$", "PP=$posPortao$ OP=$operPortao$ EA=$encAtivo$", trocarTela);
+MensagemLCD mNormal(&modoNormal, "$modo$ PP=$posPortao$ OP=$operPortao$ EA=$encAtivo$", "D=$dPWM$ AB=$encPos$ PEI=$protEncParadoAtuada$$protSobrecorrenteAtuada$", "Rst:A+F 5s Im=$iMedio$A", trocarTela);
 //MensagemLCD mNormal(&modoNormal, "$modo$", "D=$dPWM$ AB=$encPos$ Im=$iMedio$A", "PP.OP.RA.PEI=$posPortao$.$operPortao$.$encAtivo$.$protEncParado$$protSobrecorrente$", trocarTela);
 MensagemLCD mProtEncParado(&modoProtEncParadoAtuado, "$modo$", "ativada = $protEncParadoAtuada$", "(atua se Enc Ativo)", trocarTela);
 MensagemLCD mProtSobrecorrente(&modoProtSobrecorrenteAtuado, "$modo$", "ativada = $protSobrecorrenteAtuada$", " ", trocarTela);
@@ -121,6 +124,9 @@ ControladorPortao controladorPortao(portao, protecao);
 // Para em qualquer modo com btnP
 ChavesCombinadas aPf_N({&btnA, &btnP, &btnF}, {false, true, false}); // pararPortao
 AcoesChavesCombinadas pararPortaoN(aPf_N, nullptr, [](uint8_t v){ controladorPortao.parar(); }, 500, false);
+// Reset manual
+ChavesCombinadas ApF_N({&btnA, &btnP, &btnF}, {true, false, true}); // reset
+AcoesChavesCombinadas resetar(ApF_N, &modoNormal, [](uint8_t v){ ResetManual(); }, 5000, false);
 // Trocar modo
 ChavesCombinadas APF_N({&btnA, &btnP, &btnF}, {true, true, true}); // Vai para modo normal
 AcoesChavesCombinadas irModoNormal(APF_N, nullptr, [](uint8_t){ ModosOperacao::definirModoAtualPorPosicao(0); }, 2000, true, 50000, 1, 60000, 1); 
