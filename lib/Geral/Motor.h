@@ -70,7 +70,7 @@ public:
           uint8_t pinKE, 
           PWM_PB1_STM32_S& pwm, 
           FastADC_PA0_STM32_S* adc = nullptr,
-          uint16_t tempoEsperaAcionarReles_ms = 3000,
+          uint16_t tempoEsperaAcionarReles_ms = 5000,
           uint16_t tempoAtualizacaoAutomaticaImedio_ms = 500)
         : pinKD_(pinKD), 
           pinKE_(pinKE), 
