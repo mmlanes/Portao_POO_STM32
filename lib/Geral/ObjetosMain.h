@@ -78,6 +78,12 @@ ModosOperacao modoUsarProtSobrecorrente("Usar Prot. Imax ?");
 ModosOperacao modoEncAtivo("Encoder ativo");
 ModosOperacao modoEncMaximo("Encoder maximo");
 ModosOperacao modoEncReverso("Encoder reverso");
+
+ModosOperacao modoPosPartida("Posicao partida");
+ModosOperacao modoPosParada("Posicao parada");
+ModosOperacao modoDPWMPartida("DPWM partida");
+ModosOperacao modoDPWMParada("DPWM parada");
+
 ModosOperacao modoFreqPWM("Frequencia PWM");
 ModosOperacao modoDPWM("D PWM");
 ModosOperacao modoAcelPWM("Aceleracao PWM");
@@ -100,6 +106,10 @@ MensagemLCD mMonitorGeral(&modoMonitorGeral, "$modo$", "Pos=$encPos$/$encMax$ Re
 MensagemLCD mAtivarEnc(&modoEncAtivo, "$modo$", "$encAtivo$", incDecBool, trocarTela);
 MensagemLCD mEncMaximo(&modoEncMaximo, "$modo$", "$encMax$", incDecNum, trocarTela);
 MensagemLCD mEncReverso(&modoEncReverso, "$modo$", "$encRev$", incDecBool, trocarTela);
+MensagemLCD mPosPartida(&modoPosPartida, "$modo$", "$encPosPartida0a100$ %", incDecNum, trocarTela);
+MensagemLCD mPosParada(&modoPosParada, "$modo$", "$encPosParada0a100$ %", incDecNum, trocarTela);
+MensagemLCD mDPWMPartida(&modoDPWMPartida, "$modo$", "$dPWMPartida$ %", incDecNum, trocarTela);
+MensagemLCD mDPWMParada(&modoDPWMParada, "$modo$", "$dPWMParada$ %", incDecNum, trocarTela);
 MensagemLCD mFreqPWM(&modoFreqPWM, "$modo$", "$freqPWM$ Hz", incDecNum, trocarTela);
 MensagemLCD mDPWM(&modoDPWM, "$modo$", "$dPWMMax$ %", incDecNum, trocarTela);
 MensagemLCD mAcelPWM(&modoAcelPWM, "$modo$", "$acelPWM$ dPwm/s", incDecNum, trocarTela);
@@ -186,6 +196,26 @@ ChavesCombinadas Apf_MER({&btnA, &btnP, &btnF}, {true, false, false}); // encode
 AcoesChavesCombinadas encoderReverso(Apf_MER, &modoEncReverso, [](uint8_t v){ encRev.incrementar(v); }, 500, false);
 ChavesCombinadas apF_MER({&btnA, &btnP, &btnF}, {false, false, true}); // encoderDireto
 AcoesChavesCombinadas encoderDireto(apF_MER, &modoEncReverso, [](uint8_t v){ encRev.decrementar(v); }, 500, true, 5000, 10, 10000, 100);
+// Modo Posicao Partida
+ChavesCombinadas Apf_MPPt({&btnA, &btnP, &btnF}, {true, false, false}); // incPosPartida
+AcoesChavesCombinadas incPosPartida(Apf_MPPt, &modoPosPartida, [](uint8_t v){ encPosPartida0a100.incrementar(v); }, 500, true, 5000, 1, 100, 1);
+ChavesCombinadas apF_MPPt({&btnA, &btnP, &btnF}, {false, false, true}); // decPosPartida
+AcoesChavesCombinadas decPosPartida(apF_MPPt, &modoPosPartida, [](uint8_t v){ encPosPartida0a100.decrementar(v); }, 500, true, 5000, 1, 100, 1);
+// Modo Posicao Parada
+ChavesCombinadas Apf_MPPd({&btnA, &btnP, &btnF}, {true, false, false}); // incPosParada
+AcoesChavesCombinadas incPosParada(Apf_MPPd, &modoPosParada, [](uint8_t v){ encPosParada0a100.incrementar(v); }, 500, true, 5000, 1, 100, 1);
+ChavesCombinadas apF_MPPd({&btnA, &btnP, &btnF}, {false, false, true}); // decPosParada
+AcoesChavesCombinadas decPosParada(apF_MPPd, &modoPosParada, [](uint8_t v){ encPosParada0a100.decrementar(v); }, 500, true, 5000, 1, 100, 1);
+// Modo DPWM Partida
+ChavesCombinadas Apf_MDPt({&btnA, &btnP, &btnF}, {true, false, false}); // incDPWMPartida
+AcoesChavesCombinadas incDPWMPartida(Apf_MDPt, &modoDPWMPartida, [](uint8_t v){ dPWMPartida.incrementar(v); }, 500, true, 5000, 1, 100, 1);
+ChavesCombinadas apF_MDPt({&btnA, &btnP, &btnF}, {false, false, true}); // decDPWMPartida
+AcoesChavesCombinadas decDPWMPartida(apF_MDPt, &modoDPWMPartida, [](uint8_t v){ dPWMPartida.decrementar(v); }, 500, true, 5000, 1, 100, 1);
+// Modo DPWM Parada
+ChavesCombinadas Apf_MDPd({&btnA, &btnP, &btnF}, {true, false, false}); // incDPWMParada
+AcoesChavesCombinadas incDPWMParada(Apf_MDPd, &modoDPWMParada, [](uint8_t v){ dPWMParada.incrementar(v); }, 500, true, 5000, 1, 100, 1);
+ChavesCombinadas apF_MDPd({&btnA, &btnP, &btnF}, {false, false, true}); // decDPWMParada
+AcoesChavesCombinadas decDPWMParada(apF_MDPd, &modoDPWMParada, [](uint8_t v){ dPWMParada.decrementar(v); }, 500, true, 5000, 1, 100, 1);
 // Modo Ajuste frequência PWM
 ChavesCombinadas Apf_MF({&btnA, &btnP, &btnF}, {true, false, false}); // incFreqPWM
 AcoesChavesCombinadas incFreqPWM(Apf_MF, &modoFreqPWM, [](uint8_t v){ freqPWM.incrementar(v); }, 500, true, 5000, 10, 10000, 100);
