@@ -5,7 +5,7 @@
 class ConfigFlash
 {
 private:
-    static const size_t tamanhoMax = 700; // tamanho máximo da área reservada
+    static const size_t tamanhoMax = 1024; // tamanho máximo da área reservada
     static const int enderecoInicial = 0;  // endereço inicial de gravação
 
     String ultimaString_; // guarda última string salva

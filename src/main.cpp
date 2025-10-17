@@ -41,6 +41,7 @@ void setup()
     adc = FastADC_PA0_STM32_S::PeriodoTotal(iMedio, iPico, 20, periodoPWMUs, 100, &timer2);
     pinMode(PC13, OUTPUT);
     digitalWrite(PC13, LOW); // LED apagado,
+    dPWM.definirValor(0);      // Inicializa dPWM com 0
 }
 
 void loop()
