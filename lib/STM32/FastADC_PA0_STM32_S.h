@@ -93,7 +93,9 @@ private:
             delay(10);
         }
         valorNuloAdc_ = (uint16_t)(soma / totalLeituras);
+        #ifdef DISABLE_DEBUG
         Serial2.println("ADC0: " + String(valorNuloAdc_));
+        #endif
     }
 
     void setupAdcPa0Fast()

@@ -27,8 +27,11 @@
 
 void setup()
 {
+    #ifdef DISABLE_DEBUG
     Serial2.println("Iniciando sistema...");
+    #endif
     ConfigFlash cfg;
+    //cfg.ApagarFlashReservada(); // para apagar os dados salvos na flash
     cfg.obterStringCompleta();
     Serial2.println("CFG: " + cfg.obterStringCompleta() + "|");
     CarregarVariaveisFlash();

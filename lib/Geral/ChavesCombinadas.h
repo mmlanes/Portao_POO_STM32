@@ -15,8 +15,10 @@ public:
     ChavesCombinadas(const std::vector<IChave*>& chaves, const std::vector<bool>& estadosDesejados)
         : chaves_(chaves), estadosDesejados_(estadosDesejados)
     {
+        #ifdef DISABLE_DEBUG
         if (chaves_.size() != estadosDesejados_.size())
             Serial.println("Erro: número de chaves e estados não coincide!");
+        #endif
     }
 
     /// Verifica se todas as chaves estão no estado esperado

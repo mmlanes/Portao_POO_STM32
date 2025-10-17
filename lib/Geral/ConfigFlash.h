@@ -5,7 +5,7 @@
 class ConfigFlash
 {
 private:
-    static const size_t tamanhoMax = 1024; // tamanho máximo da área reservada
+    static const size_t tamanhoMax = 700; // tamanho máximo da área reservada
     static const int enderecoInicial = 0;  // endereço inicial de gravação
 
     String ultimaString_; // guarda última string salva
@@ -35,7 +35,22 @@ public:
     // 🔹 Salva todas variáveis persistentes (usando função auxiliar externa)
     bool SalvarStringConfigVariaveis(void)
     {
-        return SalvarStringConfig(VariavelBase::todasPersistentesParaString());
+        String C = VariavelBase::todasPersistentesParaString();
+        #ifdef DISABLE_DEBUG
+        Serial2.println("Salvando: " + C);
+        #endif
+        Serial2.println("Salvando: " + C);
+        delay(1000);
+        return SalvarStringConfig(C);
+    }
+
+    void ApagarFlashReservada(void)
+    {
+        for (size_t i = 0; i < tamanhoMax; i++)
+        {
+            EEPROM.write(enderecoInicial + i, 0xFF); // apaga para estado não programado
+        }
+        ultimaString_ = "";
     }
 
     // 🔹 Salva string (só se for diferente da última)
