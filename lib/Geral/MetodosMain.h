@@ -42,7 +42,9 @@ void CarregarSalvarVariaveisFlash(void)
         salvarConfigFlash.definirValor(false);
         ConfigFlash cfg;
         String C = VariavelBase::todasPersistentesParaString();
+        #ifndef DISABLE_DEBUG
         Serial2.println("Salvando: " + C);
+        #endif
         cfg.SalvarStringConfig(C);
         m.enviarMensagem("Config Flash", "Salva", " ", "aguarde 3s");
         delay(1000);

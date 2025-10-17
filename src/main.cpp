@@ -27,10 +27,14 @@
 
 void setup()
 {
+    #ifndef DISABLE_DEBUG
     Serial2.println("Iniciando sistema...");
+    #endif
     ConfigFlash cfg;
     cfg.obterStringCompleta();
+    #ifndef DISABLE_DEBUG
     Serial2.println("CFG: " + cfg.obterStringCompleta() + "|");
+    #endif
     CarregarVariaveisFlash();
     delay(200);
     pwm.defineFrequencia(freqPWM.obterValor());

@@ -18,7 +18,9 @@ private:
     bool initTardio; // Inicialização tardia do LCD
     uint8_t scanI2C(void)
     {
+        #ifndef DISABLE_DEBUG
         serial.println("Escaneando I2C...");
+        #endif
         uint8_t foundAddress = 0;
         
         for (uint8_t address = 1; address < 127; address++) 
@@ -27,14 +29,18 @@ private:
             if (Wire.endTransmission() == 0) 
             {
                 foundAddress = address;
+                #ifndef DISABLE_DEBUG
                 serial.println("LCD encontrado: 0x" + String(address, HEX));
+                #endif
                 break; // Retorna o primeiro endereço encontrado
             }
         }
         
+        #ifndef DISABLE_DEBUG
         if (foundAddress == 0) {
             serial.println("ERRO: LCD não encontrado!");
         }
+        #endif
         
         return foundAddress;
     }
@@ -44,17 +50,21 @@ public:
     : serial(serialHardware), lcd(nullptr), colLCD(colunas), linLCD(linhas), initTardio(false)
     {
         serial.begin(115200);
+        #ifndef DISABLE_DEBUG
         serial.println("Serial iniciada..");
+        #endif
     }
 
     void iniciar(void)
     {
         Wire.begin();
         delay(100);
-        uint8_t endereco = scanI2C();
+        uint8_t endereco = 0x27;//scanI2C();
         if (endereco == 0)
         {
+            #ifndef DISABLE_DEBUG
             serial.println("LCD nao achado em i2c.");
+            #endif
             lcd = nullptr;
             return;
         }
@@ -63,7 +73,9 @@ public:
         
         if (lcd == nullptr)
         {
+            #ifndef DISABLE_DEBUG
             serial.println("LCD nao inicializado.");
+            #endif
             return;
         }
 
@@ -122,6 +134,7 @@ public:
             }
         }
 
+        #ifndef DISABLE_DEBUG
         if (flagMudanca)
         {
             serial.println("+--------------------+");
@@ -131,6 +144,7 @@ public:
             serial.print(millis());
             serial.println(" -----");
         }
+        #endif
     }
 
 };
