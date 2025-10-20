@@ -33,7 +33,7 @@ ChaveSTM32 fcS(PB12, LOW);
 ChaveSTM32 fcI(PB13, LOW);
 ChaveSTM32 fcE(PB14, LOW);
 ChaveSTM32 btnA(PB5, LOW);
-ChaveSTM32 btnF(PB3, LOW);
+ChaveSTM32 btnF(PA12, LOW); // Era PB3 mas troquei com o B (PA12) do encoder
 ChaveSTM32 btnP(PB4, LOW);
 
 // Variáveis para encoder
@@ -67,7 +67,7 @@ Variavel<bool> protecaoEncoderParado("u.P.E.Pr", true, true);
 Variavel<bool> protecaoSobrecorrente("u.P.SC", true, true);
 Variavel<float> iProt("iProt", 5.0f, 1.0f, 20.0f, 0.1f, true);
 
-EncoderSTM32 encAB(encPos, encMax, encRev, PA12, PA15, true, false, false);
+EncoderSTM32 encAB(encPos, encMax, encRev, PA15, PB3, true, false, false);
 
 ModosOperacao modoNormal("N:");
 ModosOperacao modoMonitorGeral("Monitor geral");
