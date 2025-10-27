@@ -1,0 +1,6 @@
+{
+    "platformio-ide.build.addArgs": [
+        "-j",
+        "6"
+    ]
+}

@@ -108,7 +108,7 @@ public:
         // Habilita contador do timer
         TIM3->CR1 |= TIM_CR1_CEN;
 
-        definirDpwmImediato(50);
+        definirDpwmImediato(0);
     }
 
     void definirDpwmImediato(uint8_t d0a100)

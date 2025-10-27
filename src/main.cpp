@@ -46,6 +46,7 @@ void setup()
 
 void loop()
 {
+    Serial2.println(String(millis()));
     // Atualização de variáveis para visualização e controle
     dPWM.definirValor(pwm.obterDpwmAtual());                    // Atualiza Variavel<uint8_t> dPWM
     posicaoPortao.definirValor(portao.obterPosicaoAtualString()); // Atualiza Variavel<uint8_t> posPortao

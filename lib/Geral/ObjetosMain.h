@@ -44,12 +44,12 @@ Variavel<bool> encAtivo("E.a", true, true);
 Variavel<uint32_t> encMax("E.m", 2750, 100, 10e3, 1, true);
 Variavel<bool> encRev("E.r", false, true);
 // Variáveis para motor e PWM
-Variavel<uint16_t> freqPWM("F", 500, 100, 10e3, 10, true);
+Variavel<uint16_t> freqPWM("F", 1000, 100, 10e3, 10, true);
 Variavel<uint8_t> dPWM("D", 0, 0, 100, 0, false); // passo=0, serve só para monitorar
 Variavel<uint8_t> dPWMMax("D.m", 60, 10, 100, 1, true);
 Variavel<uint8_t> dPWMPartida("D.St", 15, 0, 100, 1, true);
 Variavel<uint8_t> dPWMParada("D.Pr", 10, 0, 100, 1, true);
-Variavel<float> acelPWM("A", 1.0f, 0.1f, 100.0, 0.1f, true);
+Variavel<float> acelPWM("A", 5.0f, 1.0f, 100.0f, 0.1f, true);
 Variavel<float> adjADC("A.adc", 1.7e-3f, 0.1e-3f, 10.0e-3f, 0.1e-3f, true);
 Variavel<float> iMedio("iM", 0.0f, 0.0f, 20.0f, 0.0f, false);
 Variavel<float> iPico("iP", 0.0f, 0.0f, 20.0f, 0.0f, false);
